@@ -33,6 +33,7 @@ var _t := 0.0
 var _flash := 0.0
 var _next_flash := 25.0
 var _flicker := FastNoiseLite.new()
+var _mouse := Vector2(-100, -100) # last pointer position in world px
 
 
 func build(id: String) -> void:
@@ -198,7 +199,7 @@ func begin_shelf_drag(id: String) -> void:
 	var d := Drum.new()
 	d.setup(id)
 	d.ghost = true
-	d.position = get_global_mouse_position()
+	d.position = _mouse.floor()
 	drums_node.add_child(d)
 	_drag = d
 	_drag_from_shelf = true
@@ -206,6 +207,8 @@ func begin_shelf_drag(id: String) -> void:
 
 
 func _input(event: InputEvent) -> void:
+	if event is InputEventMouse:
+		_mouse = get_canvas_transform().affine_inverse() * event.position
 	if _drag == null:
 		return
 	if event is InputEventMouseMotion:
@@ -218,7 +221,7 @@ func _input(event: InputEvent) -> void:
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseMotion and _drag == null:
-		var h := drum_at(get_global_mouse_position())
+		var h := drum_at(_mouse)
 		if h != _hover:
 			if _hover:
 				_hover.hovered = false
@@ -229,7 +232,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			else:
 				hover_changed.emit("")
 	if event is InputEventMouseButton and event.pressed:
-		var p := get_global_mouse_position()
+		var p := _mouse
 		var d := drum_at(p)
 		if d == null:
 			return
@@ -246,16 +249,21 @@ func _unhandled_input(event: InputEvent) -> void:
 			get_viewport().set_input_as_handled()
 
 
+func _update_drag_to(d: Drum) -> void:
+	d.position = (_mouse + _drag_offset).floor()
+
+
 func _update_drag() -> void:
-	var p := (get_global_mouse_position() + _drag_offset).floor()
+	var p := (_mouse + _drag_offset).floor()
 	_drag.position = p
-	_drag.valid = valid_spot(_drag, p) and not shelf_rect.has_point(get_global_mouse_position())
+	_drag.valid = valid_spot(_drag, p) and not shelf_rect.has_point(_mouse)
 
 
 func _end_drag() -> void:
 	var d := _drag
 	_drag = null
-	var mouse := get_global_mouse_position()
+	var mouse := _mouse
+	_update_drag_to(d)
 	var p := d.position
 	var over_shelf := shelf_rect.has_point(mouse)
 	if _drag_from_shelf:

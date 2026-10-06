@@ -29,7 +29,7 @@ func _ready() -> void:
 		_voices.append(p)
 	rain_bed = _loop_player(_make_rain_loop(4.0, 0.0), "Ambience", -14.0)
 	rain_patter = _loop_player(_make_rain_loop(3.0, 1.0), "Ambience", -40.0)
-	room_tone = _loop_player(_make_room_tone(6.0), "Ambience", -30.0)
+	room_tone = _loop_player(_make_room_tone(6.0), "Ambience", -38.0)
 
 
 func _setup_buses() -> void:

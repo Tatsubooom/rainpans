@@ -37,6 +37,8 @@ func _ready() -> void:
 	if _args.has("upgrades"):
 		hud.toggle_upgrades()
 	Synth.warm(Game.owned.keys())
+	if _args.has("scenario"):
+		Scenarios.run(self, _args.scenario)
 
 
 func _travel(area_id: String) -> void:

@@ -99,9 +99,9 @@ func _draw() -> void:
 		var tex: ImageTexture = _icons[id]
 		var ts := tex.get_size()
 		# Big sprites are shown at half size so every slot fits.
-		var scale := 1.0 if ts.x <= SLOT_W - 4 and ts.y <= 19 else 0.5
+		var scale := 1.0 if ts.x <= SLOT_W - 4 and ts.y <= 16 else 0.5
 		var ds := (ts * scale).floor()
-		var ip := Vector2(x + floorf((SLOT_W - 2 - ds.x) / 2.0), 2 + floorf(19 - ds.y))
+		var ip := Vector2(x + floorf((SLOT_W - 2 - ds.x) / 2.0), 2 + floorf(16 - ds.y))
 		if not visible:
 			draw_texture_rect(tex, Rect2(ip, ds), false, Color(0.0, 0.0, 0.0, 0.85))
 			UiKit.text(self, Vector2(x + 10, 19), "?", Pal.FOG0)

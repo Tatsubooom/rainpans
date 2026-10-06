@@ -5,7 +5,8 @@ extends Control
 signal info(text: String)
 signal travel(area_id: String)
 
-const ROW_H := 13
+const ROW_H := 11
+const SEP_H := 5
 const ORDER := ["rain", "drip", "reverb", "lamp", "echo", "time"]
 
 var _hover := -1
@@ -14,7 +15,7 @@ var _hover := -1
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	Game.changed.connect(queue_redraw)
-	size = Vector2(132, 18 + (ORDER.size() + 1 + Game.AREAS.size()) * ROW_H + 4)
+	size = Vector2(132, 16 + (ORDER.size() + Game.AREAS.size()) * ROW_H + SEP_H + 3)
 
 
 func _rows() -> Array:
@@ -27,11 +28,24 @@ func _rows() -> Array:
 	return rows
 
 
+func _row_y(i: int) -> int:
+	# Rows after the separator are shifted by the separator height.
+	var sep := ORDER.size()
+	if i < sep:
+		return 16 + i * ROW_H
+	if i == sep:
+		return 16 + sep * ROW_H
+	return 16 + (i - 1) * ROW_H + SEP_H
+
+
 func _row_at(p: Vector2) -> int:
-	if p.y < 16:
-		return -1
-	var i := int((p.y - 16) / ROW_H)
-	return i if i < _rows().size() else -1
+	var rows := _rows()
+	for i in rows.size():
+		var y := _row_y(i)
+		var hgt := SEP_H if rows[i].kind == "sep" else ROW_H
+		if p.y >= y and p.y < y + hgt:
+			return -1 if rows[i].kind == "sep" else i
+	return -1
 
 
 func _gui_input(event: InputEvent) -> void:
@@ -91,35 +105,34 @@ func _draw() -> void:
 	var rows := _rows()
 	for i in rows.size():
 		var row: Dictionary = rows[i]
-		var y := 16 + i * ROW_H
+		var y := _row_y(i)
 		if i == _hover and row.kind != "sep":
 			draw_rect(Rect2(2, y, size.x - 4, ROW_H), Pal.NIGHT2)
 		match row.kind:
 			"sep":
-				draw_rect(Rect2(5, y + 6, size.x - 10, 1), Pal.NIGHT3)
-				UiKit.text(self, Vector2(5, y + 1), "", Pal.FOG1)
+				draw_rect(Rect2(5, y + 2, size.x - 10, 1), Pal.NIGHT3)
 			"up":
 				var u: Dictionary = Game.UPGRADES[row.id]
 				var lv := Game.level(row.id)
 				var maxed: bool = lv >= u.max
 				var cost := Game.upgrade_cost(row.id)
 				var name_col := Pal.BONE if lv > 0 else Pal.FOG2
-				UiKit.text(self, Vector2(5, y + 1), u.name, name_col)
+				UiKit.text(self, Vector2(5, y), u.name, name_col)
 				# Level pips.
 				var pips: int = mini(u.max, 10)
 				for k in pips:
 					var col := Pal.LAMP2 if k < lv else Pal.NIGHT3
-					draw_rect(Rect2(52 + k * 3, y + 6, 2, 2), col)
+					draw_rect(Rect2(52 + k * 3, y + 5, 2, 2), col)
 				var label := "—" if maxed else Game.fmt(cost)
 				var lc := Pal.FOG1 if maxed else (Pal.LAMP1 if Game.resonance >= cost else Pal.FOG1)
-				UiKit.text(self, Vector2(size.x - 5 - UiKit.text_width(label), y + 1), label, lc)
+				UiKit.text(self, Vector2(size.x - 5 - UiKit.text_width(label), y), label, lc)
 			"area":
 				var n: String = AreaLibrary.NAMES[row.id]
 				var open: bool = row.id in Game.areas_open
 				var here: bool = row.id == Game.area
 				var col := Pal.LAMP1 if here else (Pal.BONE if open else Pal.FOG1)
-				UiKit.text(self, Vector2(5, y + 1), ("▸ " if here else "　") + n, col)
+				UiKit.text(self, Vector2(5, y), ("▸ " if here else "　") + n, col)
 				if not open:
 					var label := Game.fmt(Game.area_cost(row.id))
 					var lc := Pal.LAMP1 if Game.resonance >= Game.area_cost(row.id) else Pal.FOG1
-					UiKit.text(self, Vector2(size.x - 5 - UiKit.text_width(label), y + 1), label, lc)
+					UiKit.text(self, Vector2(size.x - 5 - UiKit.text_width(label), y), label, lc)

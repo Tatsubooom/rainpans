@@ -27,7 +27,8 @@ func _ready() -> void:
 	top.toggled_upgrades.connect(toggle_upgrades)
 
 	shelf = Shelf.new()
-	shelf.position = Vector2(0, 180 - Shelf.HEIGHT)
+	# The shelf hangs under the top bar, over the sky, so the floor stays free.
+	shelf.position = Vector2(0, 18)
 	shelf.visible = false
 	root.add_child(shelf)
 	shelf.drag_requested.connect(func(id): drag_requested.emit(id))
@@ -48,7 +49,8 @@ func _ready() -> void:
 
 func bind_stage(s: Stage) -> void:
 	stage = s
-	stage.hover_changed.connect(_info)
+	if not stage.hover_changed.is_connected(_info):
+		stage.hover_changed.connect(_info)
 	_layout()
 
 
@@ -66,7 +68,8 @@ func _layout() -> void:
 	top.shelf_open = shelf.visible
 	top.upgrades_open = upgrades.visible
 	top.queue_redraw()
-	info_line.position = Vector2(0, (180 - Shelf.HEIGHT - 12) if shelf.visible else 168)
+	info_line.position = Vector2(0, 168)
+	upgrades.position = Vector2(320 - 136, (18 + Shelf.HEIGHT + 1) if shelf.visible else 18)
 	if stage:
 		stage.shelf_rect = Rect2(shelf.position, shelf.size) if shelf.visible else Rect2()
 

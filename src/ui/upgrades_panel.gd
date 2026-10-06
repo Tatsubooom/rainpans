@@ -7,7 +7,7 @@ signal travel(area_id: String)
 
 const ROW_H := 11
 const SEP_H := 5
-const ORDER := ["rain", "drip", "reverb", "lamp", "echo", "time"]
+const ORDER := ["rain", "drip", "reverb", "lamp", "echo", "time", "wait"]
 
 var _hover := -1
 
@@ -86,6 +86,8 @@ func _describe(i: int) -> String:
 	match row.kind:
 		"up":
 			var u: Dictionary = Game.UPGRADES[row.id]
+			if not Game.upgrade_available(row.id):
+				return "？？？　もっと深い場所で"
 			if Game.level(row.id) >= u.max:
 				return "%s　%s　（これ以上はない）" % [u.name, u.desc]
 			return "%s　%s　響き %s" % [u.name, u.desc, Game.fmt(Game.upgrade_cost(row.id))]
@@ -117,6 +119,9 @@ func _draw() -> void:
 				var maxed: bool = lv >= u.max
 				var cost := Game.upgrade_cost(row.id)
 				var name_col := Pal.BONE if lv > 0 else Pal.FOG2
+				if not Game.upgrade_available(row.id):
+					UiKit.text(self, Vector2(5, y), "？？？", Pal.NIGHT3)
+					continue
 				UiKit.text(self, Vector2(5, y), u.name, name_col)
 				# Level pips.
 				var pips: int = mini(u.max, 10)

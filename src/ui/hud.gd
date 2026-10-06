@@ -60,6 +60,8 @@ func bind_stage(s: Stage) -> void:
 
 func toggle_shelf() -> void:
 	shelf.visible = not shelf.visible
+	if shelf.visible:
+		upgrades.visible = false
 	_layout()
 	_tutorial()
 
@@ -122,6 +124,8 @@ func toggle_settings() -> void:
 
 func toggle_upgrades() -> void:
 	upgrades.visible = not upgrades.visible
+	if upgrades.visible:
+		shelf.visible = false
 	_layout()
 
 
@@ -130,7 +134,7 @@ func _layout() -> void:
 	top.upgrades_open = upgrades.visible
 	top.queue_redraw()
 	info_line.position = Vector2(0, 168)
-	upgrades.position = Vector2(320 - 136, (18 + Shelf.HEIGHT + 1) if shelf.visible else 18)
+	upgrades.position = Vector2(320 - 136, 18)
 	if stage:
 		stage.shelf_rect = Rect2(shelf.position, shelf.size) if shelf.visible else Rect2()
 

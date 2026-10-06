@@ -46,9 +46,16 @@ func _ready() -> void:
 	hud.drag_requested.connect(stage.begin_shelf_drag)
 	hud.travel.connect(_travel)
 	stage.drum_struck.connect(_on_struck)
+	Game.unlocked.connect(func(what: String):
+		if what == "upgrade:wait":
+			start_ending())
 
 	if not (_args.has("shot") or _args.has("scenario")) or _args.has("intro"):
 		add_child(Intro.new())
+	if _args.has("speed"):
+		Engine.time_scale = float(_args.speed)
+	if _args.has("ending"):
+		start_ending()
 	if _args.has("crow"):
 		stage.critters.debug_sit()
 	if _args.has("settings"):
@@ -62,6 +69,16 @@ func _ready() -> void:
 	Synth.warm(Game.owned.keys())
 	if _args.has("scenario"):
 		Scenarios.run(self, _args.scenario)
+
+
+func start_ending() -> void:
+	if get_node_or_null("Ending") != null:
+		return
+	var e := Ending.new()
+	e.name = "Ending"
+	e.stage = stage
+	e.hud = hud
+	add_child(e)
 
 
 func _travel(area_id: String) -> void:
@@ -113,7 +130,7 @@ func _demo_state() -> void:
 func _process(delta: float) -> void:
 	_frame += 1
 	_journal_t += delta
-	if _journal_t > 2.0:
+	if _journal_t > 2.0 and get_node_or_null("Ending") == null:
 		_journal_t = 0.0
 		for id in Journal.reached(Game.hits_total):
 			if not id in Game.journal and not id in _journal_queue:
@@ -126,5 +143,5 @@ func _process(delta: float) -> void:
 	if _args.has("shot") and _frame == int(_args.get("frames", "90")):
 		var img := get_viewport().get_texture().get_image()
 		img.save_png(_args.shot)
-		print("shot saved: ", _args.shot, " res=", Game.resonance, " hits=", hits, " fps=", Engine.get_frames_per_second())
+		print("shot saved: ", _args.shot, " res=", Game.resonance, " hits=", hits, " fps=", Engine.get_frames_per_second(), " t=", Game.play_time)
 		get_tree().quit()

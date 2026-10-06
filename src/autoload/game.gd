@@ -41,6 +41,11 @@ const UPGRADES := {
 		"desc": "時間が流れはじめる。夕暮れから夜明けまで。",
 		"base": 3.0e6, "growth": 1.0, "max": 1,
 	},
+	"wait": {
+		"name": "雨上がりを待つ",
+		"desc": "いちばん深い場所で、雨がやむのを待つ。",
+		"base": 2.0e13, "growth": 1.0, "max": 1, "requires": "canal",
+	},
 }
 
 const AREAS := ["roof", "rail", "canal"]
@@ -142,8 +147,13 @@ func upgrade_cost(id: String) -> float:
 	return u.base * pow(u.growth, level(id))
 
 
+func upgrade_available(id: String) -> bool:
+	var req: String = UPGRADES[id].get("requires", "")
+	return req == "" or req in areas_open
+
+
 func can_upgrade(id: String) -> bool:
-	return level(id) < UPGRADES[id].max and resonance >= upgrade_cost(id)
+	return upgrade_available(id) and level(id) < UPGRADES[id].max and resonance >= upgrade_cost(id)
 
 
 func buy_upgrade(id: String) -> bool:
@@ -241,8 +251,12 @@ func open_area(id: String) -> bool:
 
 
 ## Rain intensity in drops/sec for the main (collidable) layer.
+## `rain_scale` lets the ending let the rain die away.
+var rain_scale := 1.0
+
+
 func rain_rate() -> float:
-	return 110.0 * pow(1.12, level("rain"))
+	return 110.0 * pow(1.12, level("rain")) * rain_scale
 
 
 ## 0..1 used by visuals/audio to pick drizzle..downpour looks.

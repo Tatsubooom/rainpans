@@ -123,14 +123,16 @@ func _draw() -> void:
 					UiKit.text(self, Vector2(5, y), "？？？", Pal.NIGHT3)
 					continue
 				UiKit.text(self, Vector2(5, y), u.name, name_col)
-				# Level pips.
-				var pips: int = mini(u.max, 10)
-				for k in pips:
-					var col := Pal.LAMP2 if k < lv else Pal.NIGHT3
-					draw_rect(Rect2(52 + k * 3, y + 5, 2, 2), col)
 				var label := "—" if maxed else Game.fmt(cost)
 				var lc := Pal.FOG1 if maxed else (Pal.LAMP1 if Game.resonance >= cost else Pal.FOG1)
-				UiKit.text(self, Vector2(size.x - 5 - UiKit.text_width(label), y), label, lc)
+				var lw := UiKit.text_width(label)
+				UiKit.text(self, Vector2(size.x - 5 - lw, y), label, lc)
+				# Level pips sit just left of the price.
+				var pips: int = mini(u.max, 10)
+				var px0 := size.x - 5 - lw - 4 - pips * 3
+				for k in pips:
+					var col := Pal.LAMP2 if k < lv else Pal.NIGHT3
+					draw_rect(Rect2(px0 + k * 3, y + 5, 2, 2), col)
 			"area":
 				var n: String = AreaLibrary.NAMES[row.id]
 				var open: bool = row.id in Game.areas_open

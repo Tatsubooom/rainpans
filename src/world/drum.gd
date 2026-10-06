@@ -62,9 +62,6 @@ func relight(lamp: Vector2, radius: float, color: Color) -> void:
 				var band := 2 if k > 0.6 else (1 if k > 0.3 else 0)
 				var rim: Color = [Pal.LAMP3, Pal.LAMP2, Pal.LAMP1][band]
 				lit.set_pixel(x, y, c.lerp(rim, 0.45 + 0.4 * k))
-			elif k > 0.45 and PixCanvas.bayer(x, y) < (k - 0.45):
-				# Inner warmth, dithered.
-				lit.set_pixel(x, y, c.lerp(color, 0.25))
 	tex = ImageTexture.create_from_image(lit)
 	var d := position.distance_to(lamp)
 	shadow_len = floorf(clampf((1.0 - d / (radius * 1.3)) * 14.0, 0.0, 12.0))

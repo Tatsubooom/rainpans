@@ -11,6 +11,7 @@ const HEIGHT := 31
 var _icons := {}
 var _hover := -1
 var _flash := {} # id -> time left (highlight just-bought)
+var blink_first := false # onboarding: draw attention to the free can
 
 
 func _ready() -> void:
@@ -34,7 +35,7 @@ func _process(delta: float) -> void:
 		_flash[k] -= delta
 		if _flash[k] <= 0.0:
 			_flash.erase(k)
-	if not _flash.is_empty():
+	if not _flash.is_empty() or blink_first:
 		queue_redraw()
 
 
@@ -102,6 +103,8 @@ func _draw() -> void:
 			draw_rect(r, Pal.NIGHT2)
 		if _flash.has(id):
 			draw_rect(r, Pal.LAMP4)
+		if blink_first and i == 0 and int(Time.get_ticks_msec() / 450) % 2 == 0:
+			UiKit.panel(self, r, Pal.NIGHT2, Pal.LAMP2)
 		var tex: ImageTexture = _icons[id]
 		var ts := tex.get_size()
 		# Big sprites are shown at half size so every slot fits.

@@ -47,6 +47,8 @@ func _ready() -> void:
 	root.add_child(info_line)
 	_layout()
 	Game.unlocked.connect(_on_unlocked)
+	Game.changed.connect(_tutorial)
+	_tutorial()
 
 
 func bind_stage(s: Stage) -> void:
@@ -59,6 +61,47 @@ func bind_stage(s: Stage) -> void:
 func toggle_shelf() -> void:
 	shelf.visible = not shelf.visible
 	_layout()
+	_tutorial()
+
+
+var _tut_t := 0.0
+
+
+## Onboarding: one gentle step at a time, each waiting for the player.
+func _tutorial() -> void:
+	var step := Game.tutorial
+	if step == 0 and shelf.visible:
+		step = 1
+	if step <= 1 and not Game.placed_in_area().is_empty():
+		step = 2
+		_tut_t = 9.0
+	if step == 3 and Game.levels.values().any(func(v): return v > 0):
+		step = 4
+	if step != Game.tutorial:
+		Game.tutorial = step
+	match step:
+		0:
+			info_line.hint = "雨の音を集めよう。まずは「棚」をひらいて"
+		1:
+			info_line.hint = "空き缶をつかんで、雨の当たる床へ"
+		2:
+			info_line.hint = "雨が当たると響きがたまる。クリックで自分でも鳴らせる"
+		3:
+			info_line.hint = "響きがたまったら「手入れ」で雨脚を強めよう" if Game.resonance >= Game.upgrade_cost("rain") else ""
+		_:
+			info_line.hint = ""
+	top.blink_shelf = step == 0
+	top.blink_up = step == 3 and Game.resonance >= Game.upgrade_cost("rain")
+	shelf.blink_first = step == 1
+	info_line.queue_redraw()
+
+
+func _process(delta: float) -> void:
+	if Game.tutorial == 2:
+		_tut_t -= delta
+		if _tut_t <= 0.0:
+			Game.tutorial = 3
+			_tutorial()
 
 
 func toggle_settings() -> void:
@@ -139,6 +182,8 @@ class TopBar:
 	signal toggled_settings
 	var shelf_open := false
 	var upgrades_open := false
+	var blink_shelf := false
+	var blink_up := false
 	var _shown := 0.0
 	var _hover := -1
 	const BTN_SET := Rect2(226, 3, 15, 13)
@@ -188,8 +233,9 @@ class TopBar:
 		UiKit.text(self, Vector2(13, 2), Game.fmt(_shown), Pal.BONE)
 		if Game.rate > 0.0:
 			UiKit.text(self, Vector2(13, 12), "%s/秒" % Game.fmt(Game.rate), Pal.FOG2)
-		_button(BTN_SHELF, "棚", shelf_open, _hover == 0)
-		_button(BTN_UP, "手入れ", upgrades_open, _hover == 1)
+		var pulse := int(Time.get_ticks_msec() / 450) % 2 == 0
+		_button(BTN_SHELF, "棚", shelf_open or (blink_shelf and pulse), _hover == 0)
+		_button(BTN_UP, "手入れ", upgrades_open or (blink_up and pulse), _hover == 1)
 		_button(BTN_SET, "", false, _hover == 2)
 		# A tiny gear-less "settings" glyph: three dots.
 		for k in 3:
@@ -204,6 +250,7 @@ class TopBar:
 class InfoLine:
 	extends Control
 	var _text := ""
+	var hint := "" # persistent onboarding line, shown when nothing else is
 	var _toast := ""
 	var _toast_t := 0.0
 
@@ -228,7 +275,7 @@ class InfoLine:
 
 	## True when nothing has been shown for a little while.
 	func idle() -> bool:
-		return _toast_t <= 0.0 and _quiet > 6.0
+		return _toast_t <= 0.0 and _quiet > 6.0 and hint == ""
 
 	func _process(delta: float) -> void:
 		if _toast_t > 0.0:
@@ -245,6 +292,9 @@ class InfoLine:
 			col = Pal.LAMP1 if _toast_t > 0.6 or int(_toast_t * 10.0) % 2 == 0 else Pal.LAMP3
 			if _soft:
 				col = Pal.RAIN_HI if _toast_t > 0.8 else (Pal.RAIN if _toast_t > 0.4 else Pal.FOG1)
+		if t == "" and hint != "":
+			t = hint
+			col = Pal.LAMP1 if int(Time.get_ticks_msec() / 900) % 2 == 0 else Pal.LAMP2
 		if t == "":
 			return
 		var tw := UiKit.text_width(t)

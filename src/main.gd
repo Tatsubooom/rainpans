@@ -42,8 +42,6 @@ func _ready() -> void:
 		hud.toggle_settings()
 	if Game.offline_gain > 0.0:
 		hud.toast("留守のあいだに 響き %s" % Game.fmt(Game.offline_gain))
-	elif Game.placed_in_area().is_empty():
-		hud.toast("棚から空き缶を、雨の当たる場所へ")
 	if _args.has("shelf"):
 		hud.toggle_shelf()
 	if _args.has("upgrades"):

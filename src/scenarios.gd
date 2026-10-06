@@ -7,6 +7,8 @@ static func run(main: Node, name: String) -> void:
 	match name:
 		"drag":
 			await _drag(main)
+		"rates":
+			await _rates(main)
 		_:
 			print("SCENARIO FAIL unknown ", name)
 	main.get_tree().quit()
@@ -96,3 +98,24 @@ static func _drag(main: Node) -> void:
 		print("SCENARIO FAIL right-click did not return the can")
 		return
 	print("SCENARIO OK drag")
+
+
+## Measures hits/sec of a single drum per rain level (for balancing).
+static func _rates(main: Node) -> void:
+	Engine.time_scale = 4.0
+	for id in ["can", "bucket", "drum"]:
+		var line: String = id + ":"
+		for lvl in [0, 10]:
+			Game.reset()
+			Game.levels["rain"] = lvl
+			Game.owned[id] = 1
+			Game.placements = {"roof": [{"id": id, "x": 100.0, "y": 150.0}]}
+			main.stage.build("roof")
+			var t0 := Time.get_ticks_msec()
+			var e0 := Game.total_earned
+			await main.get_tree().create_timer(12.0).timeout
+			var game_secs := (Time.get_ticks_msec() - t0) / 1000.0 * Engine.time_scale
+			var hits: float = (Game.total_earned - e0) / (DrumDefs.get_def(id).yield * Game.multiplier())
+			line += "  L%d=%.2f/s" % [lvl, hits / game_secs]
+		print(line)
+	print("SCENARIO OK rates")

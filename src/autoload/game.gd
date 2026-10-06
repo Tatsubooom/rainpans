@@ -14,37 +14,39 @@ const UPGRADES := {
 	"rain": {
 		"name": "雨脚",
 		"desc": "雨が少しずつ強くなる。",
-		"base": 25.0, "growth": 2.1, "max": 10,
+		"base": 50.0, "growth": 4.5, "max": 10,
 	},
 	"drip": {
 		"name": "雨樋",
 		"desc": "ひさしから落ちるしずくが増える。",
-		"base": 120.0, "growth": 2.6, "max": 6,
+		"base": 300.0, "growth": 5.0, "max": 6,
 	},
 	"reverb": {
 		"name": "残響",
 		"desc": "響きが長く残り、すべての響きが増える。",
-		"base": 600.0, "growth": 3.0, "max": 5,
+		"base": 2000.0, "growth": 6.0, "max": 5,
 	},
 	"echo": {
 		"name": "こだま",
 		"desc": "遠くの壁から音が返ってくる。響き +50%。",
-		"base": 9000.0, "growth": 1.0, "max": 1,
+		"base": 1.0e6, "growth": 1.0, "max": 1,
 	},
 	"lamp": {
 		"name": "灯り",
 		"desc": "ランタンの芯を足す。暗がりの響き +25%。",
-		"base": 2500.0, "growth": 4.0, "max": 3,
+		"base": 5.0e4, "growth": 12.0, "max": 3,
 	},
 	"time": {
 		"name": "夜をすすめる",
 		"desc": "時間が流れはじめる。夕暮れから夜明けまで。",
-		"base": 50000.0, "growth": 1.0, "max": 1,
+		"base": 3.0e6, "growth": 1.0, "max": 1,
 	},
 }
 
 const AREAS := ["roof", "rail", "canal"]
-const AREA_COST := {"roof": 0.0, "rail": 400000.0, "canal": 60000000.0}
+const AREA_COST := {"roof": 0.0, "rail": 5.0e7, "canal": 5.0e10}
+## Each deeper place carries sound further: a flat multiplier while you are there.
+const AREA_MULT := {"roof": 1.0, "rail": 3.0, "canal": 9.0}
 
 var resonance := 0.0
 var total_earned := 0.0
@@ -99,6 +101,9 @@ func _notification(what: int) -> void:
 
 func multiplier() -> float:
 	var m := 1.0
+	# Heavier rain: denser drops (see rain_rate) and weightier ones.
+	m *= pow(1.2, level("rain"))
+	m *= AREA_MULT.get(area, 1.0)
 	m *= 1.0 + 0.2 * level("reverb")
 	if level("echo") > 0:
 		m *= 1.5
@@ -146,7 +151,7 @@ func drum_cost(id: String) -> float:
 	var n: int = owned.get(id, 0)
 	var base: float = d.cost
 	if base <= 0.0:
-		base = 8.0
+		base = 10.0
 	# The first copy of a new type costs its unlock price; copies get dearer.
 	return base * pow(d.growth, n) if n > 0 else base
 
@@ -179,12 +184,13 @@ func placed_in_area() -> Array:
 	return placements[area]
 
 
+## Copies of `id` placed in the current area. Each area has its own
+## arrangement drawn from the same owned pool.
 func placed_count(id: String) -> int:
 	var n := 0
-	for a in placements:
-		for p in placements[a]:
-			if p.id == id:
-				n += 1
+	for p in placed_in_area():
+		if p.id == id:
+			n += 1
 	return n
 
 
@@ -217,7 +223,7 @@ func open_area(id: String) -> bool:
 
 ## Rain intensity in drops/sec for the main (collidable) layer.
 func rain_rate() -> float:
-	return 110.0 * pow(1.3, level("rain"))
+	return 110.0 * pow(1.12, level("rain"))
 
 
 ## 0..1 used by visuals/audio to pick drizzle..downpour looks.

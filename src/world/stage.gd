@@ -181,7 +181,17 @@ func valid_spot(d: Drum, pos: Vector2) -> bool:
 	if not f.has_point(pos):
 		return false
 	var half := d.size().x / 2.0
-	return pos.x - half >= 0.0 and pos.x + half <= 320.0
+	if pos.x - half < 0.0 or pos.x + half > 320.0:
+		return false
+	# No stacking: another drum at nearly the same depth must not overlap.
+	for o in rain.drums:
+		var other: Drum = o
+		if other == d:
+			continue
+		var oh := other.size().x / 2.0
+		if absf(other.position.y - pos.y) < 7.0 and absf(other.position.x - pos.x) < half + oh:
+			return false
+	return true
 
 
 func drum_at(p: Vector2) -> Drum:

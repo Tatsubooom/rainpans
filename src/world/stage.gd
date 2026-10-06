@@ -42,6 +42,8 @@ func build(id: String) -> void:
 	for ch in get_children():
 		ch.queue_free()
 	mist.clear()
+	_drag = null
+	_hover = null
 	area_id = id
 	area = AreaLibrary.build(id)
 	var layers: Dictionary = area.layers
@@ -283,7 +285,9 @@ func _input(event: InputEvent) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if event is InputEventMouseMotion and _drag == null:
+	if _drag != null:
+		return
+	if event is InputEventMouseMotion:
 		var h := drum_at(_mouse)
 		if h != _hover:
 			if _hover:
@@ -450,7 +454,9 @@ func _process(delta: float) -> void:
 		if _next_flash <= 0.0:
 			_next_flash = randf_range(30.0, 90.0)
 			_flash = 1.0
-			get_tree().create_timer(randf_range(1.2, 3.0)).timeout.connect(func(): thunder.play())
+			get_tree().create_timer(randf_range(1.2, 3.0)).timeout.connect(func():
+				if is_instance_valid(thunder):
+					thunder.play())
 	var flash_on := false
 	if _flash > 0.0:
 		_flash = maxf(0.0, _flash - delta * 2.5)

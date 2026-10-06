@@ -30,6 +30,7 @@ tools/shot.sh shots/a.png --demo --frames=120   # 仮想ディスプレイでス
 tools/test.sh                 # ヘッドレスのロジックテスト
 tools/scenario.sh drag        # 入力を再生して配置操作を確認
 tools/check.sh                # GDScript の構文チェック
+tools/ci.sh                   # 上の確認をまとめて実行
 tools/balance_sim.py          # 経済バランスのシミュレーション
 ```
 

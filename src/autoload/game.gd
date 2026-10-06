@@ -72,6 +72,7 @@ var _save_t := 0.0
 var offline_gain := 0.0
 var debug_phase := -1.0 # forces time of day (screenshots)
 var _no_save := false
+var _dirty := false # earn() batches its `changed` signal to once per frame
 
 
 func _ready() -> void:
@@ -85,6 +86,9 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	play_time += delta
+	if _dirty:
+		_dirty = false
+		changed.emit()
 	_rate_t += delta
 	if _rate_t >= 2.0:
 		var inst := _rate_acc / _rate_t
@@ -124,7 +128,7 @@ func earn(base: float) -> float:
 	resonance += v
 	total_earned += v
 	_rate_acc += v
-	changed.emit()
+	_dirty = true
 	return v
 
 
@@ -251,7 +255,6 @@ func apply_audio() -> void:
 	var synth := get_node_or_null("/root/Synth")
 	if synth == null:
 		return
-	synth.set_reverb_wet(0.28 + 0.06 * level("reverb"), 0.7 + 0.05 * level("reverb"))
 	synth.set_echo(level("echo") > 0)
 	AudioServer.set_bus_volume_db(0, linear_to_db(maxf(0.0001, settings.master)))
 	AudioServer.set_bus_volume_db(1, linear_to_db(maxf(0.0001, settings.get("drums", 0.9))))

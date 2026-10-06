@@ -59,6 +59,8 @@ func _travel(area_id: String) -> void:
 	Game.area = area_id
 	stage.build(area_id)
 	hud.bind_stage(stage)
+	if Game.placed_in_area().is_empty():
+		hud.toast("%s。棚から雨受けを並べよう（%d 個まで）" % [AreaLibrary.NAMES[area_id], Game.capacity()])
 	Game.save_game()
 
 

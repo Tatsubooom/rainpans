@@ -11,6 +11,8 @@ static func run(main: Node, name: String) -> void:
 			await _rates(main)
 		"progress":
 			await _progress(main)
+		"travel":
+			await _travel(main)
 		_:
 			print("SCENARIO FAIL unknown ", name)
 	main.get_tree().quit()
@@ -206,3 +208,41 @@ static func _auto_place(stage: Stage, id: String) -> bool:
 				return true
 	d.free()
 	return false
+
+
+## Opens the other areas, arranges something in each, travels back and
+## forth (also mid-drag) and checks every arrangement survives.
+static func _travel(main: Node) -> void:
+	Game.reset()
+	Game.resonance = 1e12
+	Game.owned = {"can": 2, "bucket": 1}
+	main.stage.build("roof")
+	main.hud.bind_stage(main.stage)
+	main.stage.place_drum("can", Vector2(60, 150))
+	for a in ["rail", "canal"]:
+		if not Game.open_area(a):
+			print("SCENARIO FAIL could not open ", a)
+			return
+		main._travel(a)
+		await _frames(main, 3)
+		if main.stage.area_id != a or not main.stage.rain.drums.is_empty():
+			print("SCENARIO FAIL fresh area not empty: ", a)
+			return
+		main.stage.place_drum("bucket", Vector2(150, 156))
+		await _frames(main, 2)
+	# Start a drag, then travel away mid-drag.
+	main.stage.begin_shelf_drag("can")
+	main._travel("roof")
+	await _frames(main, 3)
+	var ok: bool = Game.placements["roof"].size() == 1 and Game.placements["rail"].size() == 1 and Game.placements["canal"].size() == 1
+	if not ok:
+		print("SCENARIO FAIL placements lost: ", Game.placements)
+		return
+	if main.stage.rain.drums.size() != 1:
+		print("SCENARIO FAIL roof drums not respawned")
+		return
+	# Let everything run a little in each area to shake out runtime errors.
+	for a in ["rail", "canal", "roof"]:
+		main._travel(a)
+		await main.get_tree().create_timer(1.0).timeout
+	print("SCENARIO OK travel")

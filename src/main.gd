@@ -34,6 +34,10 @@ func _ready() -> void:
 	hud.travel.connect(_travel)
 	stage.drum_struck.connect(_on_struck)
 
+	if not (_args.has("shot") or _args.has("scenario")) or _args.has("intro"):
+		add_child(Intro.new())
+	if _args.has("settings"):
+		hud.toggle_settings()
 	if Game.offline_gain > 0.0:
 		hud.toast("留守のあいだに 響き %s" % Game.fmt(Game.offline_gain))
 	elif Game.placed_in_area().is_empty():

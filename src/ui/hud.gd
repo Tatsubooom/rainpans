@@ -11,6 +11,7 @@ var top: TopBar
 var shelf: Shelf
 var upgrades: UpgradesPanel
 var info_line: InfoLine
+var settings: SettingsPanel
 var stage: Stage
 
 
@@ -25,6 +26,7 @@ func _ready() -> void:
 	root.add_child(top)
 	top.toggled_shelf.connect(toggle_shelf)
 	top.toggled_upgrades.connect(toggle_upgrades)
+	top.toggled_settings.connect(toggle_settings)
 
 	shelf = Shelf.new()
 	# The shelf hangs under the top bar, over the sky, so the floor stays free.
@@ -57,6 +59,18 @@ func bind_stage(s: Stage) -> void:
 func toggle_shelf() -> void:
 	shelf.visible = not shelf.visible
 	_layout()
+
+
+func toggle_settings() -> void:
+	if settings and is_instance_valid(settings):
+		settings.queue_free()
+		settings = null
+		_info("")
+		return
+	settings = SettingsPanel.new()
+	root.add_child(settings)
+	settings.closed.connect(toggle_settings)
+	settings.info.connect(_info)
 
 
 func toggle_upgrades() -> void:
@@ -103,6 +117,8 @@ func _unhandled_key_input(event: InputEvent) -> void:
 				toggle_shelf()
 			KEY_U, KEY_E:
 				toggle_upgrades()
+			KEY_ESCAPE:
+				toggle_settings()
 
 
 # ---------------------------------------------------------------------------
@@ -111,10 +127,12 @@ class TopBar:
 	extends Control
 	signal toggled_shelf
 	signal toggled_upgrades
+	signal toggled_settings
 	var shelf_open := false
 	var upgrades_open := false
 	var _shown := 0.0
 	var _hover := -1
+	const BTN_SET := Rect2(226, 3, 15, 13)
 	const BTN_SHELF := Rect2(244, 3, 34, 13)
 	const BTN_UP := Rect2(281, 3, 36, 13)
 
@@ -124,7 +142,7 @@ class TopBar:
 		Game.changed.connect(queue_redraw)
 
 	func _has_point(p: Vector2) -> bool:
-		return BTN_SHELF.has_point(p) or BTN_UP.has_point(p)
+		return BTN_SHELF.has_point(p) or BTN_UP.has_point(p) or BTN_SET.has_point(p)
 
 	func _process(delta: float) -> void:
 		# The counter eases toward the real value so it never jitters.
@@ -134,7 +152,7 @@ class TopBar:
 
 	func _gui_input(event: InputEvent) -> void:
 		if event is InputEventMouseMotion:
-			var h := 0 if BTN_SHELF.has_point(event.position) else (1 if BTN_UP.has_point(event.position) else -1)
+			var h := 0 if BTN_SHELF.has_point(event.position) else (1 if BTN_UP.has_point(event.position) else (2 if BTN_SET.has_point(event.position) else -1))
 			if h != _hover:
 				_hover = h
 				queue_redraw()
@@ -144,6 +162,9 @@ class TopBar:
 				accept_event()
 			elif BTN_UP.has_point(event.position):
 				toggled_upgrades.emit()
+				accept_event()
+			elif BTN_SET.has_point(event.position):
+				toggled_settings.emit()
 				accept_event()
 
 	func _draw() -> void:
@@ -160,6 +181,10 @@ class TopBar:
 			UiKit.text(self, Vector2(13, 12), "%s/秒" % Game.fmt(Game.rate), Pal.FOG2)
 		_button(BTN_SHELF, "棚", shelf_open, _hover == 0)
 		_button(BTN_UP, "手入れ", upgrades_open, _hover == 1)
+		_button(BTN_SET, "", false, _hover == 2)
+		# A tiny gear-less "settings" glyph: three dots.
+		for k in 3:
+			draw_rect(Rect2(BTN_SET.position.x + 4 + k * 3, BTN_SET.position.y + 6, 1, 1), Pal.RAIN)
 
 	func _button(r: Rect2, label: String, on: bool, hover: bool) -> void:
 		UiKit.panel(self, r, Pal.NIGHT2 if (on or hover) else Pal.NIGHT0, Pal.LAMP3 if on else Pal.NIGHT3)

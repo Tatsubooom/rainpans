@@ -57,7 +57,7 @@ var owned := {"can": 1}
 var placements := {}
 var area := "roof"
 var areas_open := ["roof"]
-var settings := {"master": 0.8, "quantize": false}
+var settings := {"master": 0.8, "drums": 0.9, "ambience": 0.8, "quantize": false}
 var play_time := 0.0
 
 ## rolling income estimate (per second) used for display and offline gains
@@ -76,7 +76,7 @@ func _ready() -> void:
 	_no_save = "--no-save" in OS.get_cmdline_user_args()
 	if not _no_save:
 		load_game()
-	_apply_audio()
+	apply_audio()
 
 
 func _process(delta: float) -> void:
@@ -141,7 +141,7 @@ func buy_upgrade(id: String) -> bool:
 		return false
 	resonance -= upgrade_cost(id)
 	levels[id] = level(id) + 1
-	_apply_audio()
+	apply_audio()
 	unlocked.emit("upgrade:" + id)
 	changed.emit()
 	return true
@@ -232,7 +232,7 @@ func rain_level() -> float:
 	return clampf(level("rain") / 10.0, 0.0, 1.0) * 0.85 + 0.15
 
 
-func _apply_audio() -> void:
+func apply_audio() -> void:
 	if not is_inside_tree():
 		return
 	var synth := get_node_or_null("/root/Synth")
@@ -241,6 +241,8 @@ func _apply_audio() -> void:
 	synth.set_reverb_wet(0.28 + 0.06 * level("reverb"), 0.7 + 0.05 * level("reverb"))
 	synth.set_echo(level("echo") > 0)
 	AudioServer.set_bus_volume_db(0, linear_to_db(maxf(0.0001, settings.master)))
+	AudioServer.set_bus_volume_db(1, linear_to_db(maxf(0.0001, settings.get("drums", 0.9))))
+	AudioServer.set_bus_volume_db(2, linear_to_db(maxf(0.0001, settings.get("ambience", 0.8))))
 
 
 # ---------------------------------------------------------------- formatting
@@ -342,5 +344,5 @@ func reset() -> void:
 	area = "roof"
 	areas_open = ["roof"]
 	rate = 0.0
-	_apply_audio()
+	apply_audio()
 	changed.emit()

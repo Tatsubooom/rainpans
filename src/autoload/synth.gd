@@ -125,12 +125,48 @@ static func degree_ratio(deg: int) -> float:
 	return pow(2.0, (octave * 12 + step) / 12.0)
 
 
+## Beat grid for the optional quantize: eighth notes at 72 BPM.
+const GRID_MS := 60000.0 / 72.0 / 2.0
+var _queue: Array = [] # [due_msec, id, degree, pos, velocity]
+var _slots := {} # "key@slot" -> true, one note per drum per grid slot
+
+
+func _process(_delta: float) -> void:
+	if _queue.is_empty():
+		return
+	var now := Time.get_ticks_msec()
+	var i := 0
+	while i < _queue.size():
+		var q: Array = _queue[i]
+		if now >= q[0]:
+			_voice(q[1], q[2], q[3], q[4])
+			_queue.remove_at(i)
+		else:
+			i += 1
+	if _slots.size() > 512:
+		_slots.clear()
+
+
 func play(id: String, degree: int, pos: Vector2, velocity: float, key: int) -> bool:
 	var now := Time.get_ticks_msec()
+	if Game.settings.get("quantize", false) and key >= 0:
+		# Hold the note until the next eighth; one note per drum per slot.
+		var slot := int(ceil(now / GRID_MS))
+		var sk := "%d@%d" % [key, slot]
+		if _slots.has(sk):
+			return false
+		_slots[sk] = true
+		_queue.append([int(slot * GRID_MS), id, degree, pos, velocity])
+		return true
 	var last: int = _last_hit.get(key, -100000)
 	if now - last < 70:
 		return false
 	_last_hit[key] = now
+	_voice(id, degree, pos, velocity)
+	return true
+
+
+func _voice(id: String, degree: int, pos: Vector2, velocity: float) -> void:
 	var p := _voices[_next_voice]
 	_next_voice = (_next_voice + 1) % VOICES
 	p.stream = sample(id)
@@ -138,7 +174,6 @@ func play(id: String, degree: int, pos: Vector2, velocity: float, key: int) -> b
 	p.volume_db = linear_to_db(clampf(velocity, 0.05, 1.0)) - 6.0
 	p.global_position = pos
 	p.play()
-	return true
 
 
 # ------------------------------------------------------------------ synthesis

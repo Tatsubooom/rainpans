@@ -304,6 +304,19 @@ static func _floor(rng: RandomNumberGenerator) -> Image:
 	_box(c, 222, 120, 16, 12, Pal.RUST2, Pal.RUST3)
 	_box(c, 228, 112, 11, 9, Pal.RUST1, Pal.RUST2)
 	_chair(c, 18, 124)
+	_bicycle(c, 36, 130)
+	# An umbrella blown inside out, lying against the parapet.
+	var umb := PixCanvas.grid([
+		"......o......",
+		"..oo.o.o.oo..",
+		".o2o3o3o3o2o.",
+		"o23433433432o",
+		".ooooooooooo.",
+		"......o......",
+		"......o......",
+		".....o.......",
+	], {"o": Pal.INK, "2": Pal.NIGHT3, "3": Pal.FOG0, "4": Pal.FOG1})
+	c.stamp(umb, 140, 124)
 	# Weed in a cracked planter.
 	c.rect(84, 124, 14, 8, Pal.CON3)
 	c.hline(84, 97, 124, Pal.CON4)
@@ -323,6 +336,25 @@ static func _box(c: PixCanvas, x: int, y: int, bw: int, bh: int, body: Color, li
 	c.hline(x, x + bw - 1, y + bh - 1, Pal.INK)
 	c.vline(x + bw - 1, y, y + bh - 1, Pal.RUST0)
 	c.hline(x + 2, x + bw - 3, y + bh / 2, Pal.RUST0)
+
+
+static func _bicycle(c: PixCanvas, x: int, y: int) -> void:
+	# A rusted bicycle leaning on the parapet: two wheels, frame, bars.
+	var col := Pal.RUST1
+	for cx in [x, x + 16]:
+		for a in 24:
+			var t := TAU * a / 24.0
+			c.px(cx + int(roundf(cos(t) * 5.0)), y - 5 + int(roundf(sin(t) * 5.0)), Pal.INK)
+		c.px(cx, y - 5, col)
+	c.line(x, y - 5, x + 7, y - 5, col)
+	c.line(x + 7, y - 5, x + 12, y - 11, col)
+	c.line(x + 3, y - 11, x + 12, y - 11, col)
+	c.line(x + 3, y - 11, x, y - 5, col)
+	c.line(x + 7, y - 5, x + 4, y - 12, col)
+	c.line(x + 12, y - 11, x + 16, y - 5, col)
+	c.hline(x + 2, x + 5, y - 13, Pal.INK)
+	c.line(x + 12, y - 11, x + 13, y - 14, col)
+	c.hline(x + 11, x + 15, y - 14, Pal.RUST2)
 
 
 static func _chair(c: PixCanvas, x: int, y: int) -> void:

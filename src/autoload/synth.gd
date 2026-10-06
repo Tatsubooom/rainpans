@@ -106,9 +106,15 @@ func set_area_bed(kind: String) -> void:
 		area_bed.stop()
 		return
 	if not _area_beds.has(kind):
-		_area_beds[kind] = _make_water_loop(6.0) if kind == "water" else _make_wind_loop(8.0)
+		match kind:
+			"water":
+				_area_beds[kind] = _make_water_loop(6.0)
+			"glass":
+				_area_beds[kind] = _make_glass_loop(5.0)
+			_:
+				_area_beds[kind] = _make_wind_loop(8.0)
 	area_bed.stream = _area_beds[kind]
-	area_bed.volume_db = -16.0 if kind == "water" else -22.0
+	area_bed.volume_db = {"water": -16.0, "glass": -19.0}.get(kind, -22.0)
 	area_bed.play()
 
 
@@ -367,6 +373,28 @@ func _make_water_loop(seconds: float) -> AudioStreamWAV:
 	for v in buf:
 		peak = maxf(peak, absf(v))
 	return _to_wav(buf, 0.6 / peak, true)
+
+
+## Rain on glass: dense, bright little ticks with a glassy ring to each.
+func _make_glass_loop(seconds: float) -> AudioStreamWAV:
+	var n := int(seconds * RATE)
+	var buf := PackedFloat32Array()
+	buf.resize(n)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 63
+	for k in int(seconds * 140):
+		var start := rng.randi_range(0, n - 1)
+		var f := rng.randf_range(2400.0, 5200.0)
+		var amp := rng.randf_range(0.05, 0.25)
+		var dur := rng.randf_range(0.004, 0.02)
+		for i in int(dur * 5.0 * RATE):
+			var t := float(i) / RATE
+			# Wrap around so ticks near the end continue at the start (seamless).
+			buf[(start + i) % n] += sin(TAU * f * t) * amp * exp(-t / dur)
+	var peak := 0.0001
+	for v in buf:
+		peak = maxf(peak, absf(v))
+	return _to_wav(buf, 0.5 / peak, true)
 
 
 ## Wind across open concrete: band-limited noise with slow gusts.

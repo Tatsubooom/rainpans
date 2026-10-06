@@ -48,12 +48,12 @@ const UPGRADES := {
 	},
 }
 
-const AREAS := ["roof", "rail", "canal"]
-const AREA_COST := {"roof": 0.0, "rail": 5.0e7, "canal": 5.0e10}
+const AREAS := ["roof", "rail", "glass", "canal"]
+const AREA_COST := {"roof": 0.0, "rail": 5.0e7, "glass": 1.5e9, "canal": 8.0e10}
 ## Each deeper place carries sound further: a flat multiplier while you are there.
-const AREA_MULT := {"roof": 1.0, "rail": 3.0, "canal": 9.0}
+const AREA_MULT := {"roof": 1.0, "rail": 3.0, "glass": 5.0, "canal": 12.0}
 ## How many rain drums each place can hold.
-const AREA_CAP := {"roof": 20, "rail": 24, "canal": 28}
+const AREA_CAP := {"roof": 20, "rail": 24, "glass": 26, "canal": 28}
 
 var resonance := 0.0
 var total_earned := 0.0

@@ -108,7 +108,14 @@ func _demo_state() -> void:
 	Game.owned = {"can": 3, "bucket": 2, "helmet": 1, "pot": 1, "bottle": 1, "drum": 1, "tin": 1, "kettle": 1, "pipes": 1}
 	Game.levels["rain"] = int(_args.get("rain", "3"))
 	Game.levels["drip"] = 2
-	Game.placements = {"rail": [
+	Game.placements = {"glass": [
+		{"id": "bottle", "x": 64.0, "y": 150.0},
+		{"id": "pot", "x": 156.0, "y": 156.0},
+		{"id": "kettle", "x": 226.0, "y": 146.0},
+		{"id": "helmet", "x": 100.0, "y": 150.0},
+		{"id": "drum", "x": 284.0, "y": 160.0},
+		{"id": "can", "x": 30.0, "y": 166.0},
+	], "rail": [
 		{"id": "kettle", "x": 70.0, "y": 154.0},
 		{"id": "pipes", "x": 40.0, "y": 150.0},
 		{"id": "tin", "x": 168.0, "y": 160.0},

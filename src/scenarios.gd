@@ -253,7 +253,7 @@ static func _travel(main: Node) -> void:
 	main.stage.build("roof")
 	main.hud.bind_stage(main.stage)
 	main.stage.place_drum("can", Vector2(60, 150))
-	for a in ["rail", "canal"]:
+	for a in ["rail", "glass", "canal"]:
 		if not Game.open_area(a):
 			print("SCENARIO FAIL could not open ", a)
 			return
@@ -268,7 +268,7 @@ static func _travel(main: Node) -> void:
 	main.stage.begin_shelf_drag("can")
 	main._travel("roof")
 	await _frames(main, 3)
-	var ok: bool = Game.placements["roof"].size() == 1 and Game.placements["rail"].size() == 1 and Game.placements["canal"].size() == 1
+	var ok: bool = Game.placements["roof"].size() == 1 and Game.placements["rail"].size() == 1 and Game.placements["glass"].size() == 1 and Game.placements["canal"].size() == 1
 	if not ok:
 		print("SCENARIO FAIL placements lost: ", Game.placements)
 		return
@@ -276,7 +276,7 @@ static func _travel(main: Node) -> void:
 		print("SCENARIO FAIL roof drums not respawned")
 		return
 	# Let everything run a little in each area to shake out runtime errors.
-	for a in ["rail", "canal", "roof"]:
+	for a in ["rail", "glass", "canal", "roof"]:
 		main._travel(a)
 		await main.get_tree().create_timer(1.0).timeout
 	print("SCENARIO OK travel")

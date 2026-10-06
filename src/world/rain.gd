@@ -68,6 +68,20 @@ func _spawn(y: float = -8.0) -> void:
 		var r: Rect2 = area[key]
 		x = _rng.randf_range(r.position.x, r.end.x)
 		y = maxf(y, r.position.y)
+	elif layer == NEAR and area.has("rain_rects"):
+		# Several openings: pick one, weighted by its width.
+		var rects: Array = area.rain_rects
+		var total := 0.0
+		for rr in rects:
+			total += (rr as Rect2).size.x
+		var pick := _rng.randf() * total
+		for rr in rects:
+			var r: Rect2 = rr
+			if pick <= r.size.x:
+				x = r.position.x + pick
+				y = maxf(y, r.position.y)
+				break
+			pick -= r.size.x
 	var depth: float
 	var speed: float
 	var ln: float

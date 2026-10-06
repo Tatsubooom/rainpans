@@ -6,5 +6,7 @@ const NAMES := {"roof": "崩れた屋上", "rail": "途切れた高架", "canal"
 
 static func build(id: String) -> Dictionary:
 	match id:
+		"rail":
+			return RailArt.build()
 		_:
 			return RoofArt.build()

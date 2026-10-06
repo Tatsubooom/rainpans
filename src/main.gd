@@ -17,6 +17,10 @@ func _ready() -> void:
 		Game.reset()
 	if _args.has("demo"):
 		_demo_state()
+	if _args.has("area"):
+		Game.area = _args.area
+		if not Game.area in Game.areas_open:
+			Game.areas_open.append(Game.area)
 	if _args.has("phase"):
 		Game.debug_phase = float(_args.phase)
 
@@ -62,10 +66,18 @@ func _on_struck(_d: Drum, _amount: float) -> void:
 func _demo_state() -> void:
 	Game.resonance = float(_args.get("res", "1234"))
 	Game.total_earned = 50000.0
-	Game.owned = {"can": 3, "bucket": 2, "helmet": 1, "pot": 1, "bottle": 1, "drum": 1}
+	Game.owned = {"can": 3, "bucket": 2, "helmet": 1, "pot": 1, "bottle": 1, "drum": 1, "tin": 1, "kettle": 1, "pipes": 1}
 	Game.levels["rain"] = int(_args.get("rain", "3"))
 	Game.levels["drip"] = 2
-	Game.placements = {"roof": [
+	Game.placements = {"rail": [
+		{"id": "kettle", "x": 70.0, "y": 154.0},
+		{"id": "pipes", "x": 40.0, "y": 150.0},
+		{"id": "tin", "x": 168.0, "y": 160.0},
+		{"id": "drum", "x": 230.0, "y": 152.0},
+		{"id": "bottle", "x": 196.0, "y": 170.0},
+		{"id": "helmet", "x": 270.0, "y": 166.0},
+		{"id": "pot", "x": 110.0, "y": 172.0},
+	], "roof": [
 		{"id": "can", "x": 40.0, "y": 150.0},
 		{"id": "bucket", "x": 74.0, "y": 141.0},
 		{"id": "helmet", "x": 128.0, "y": 158.0},

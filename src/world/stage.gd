@@ -115,6 +115,15 @@ func build(id: String) -> void:
 	halo.material = mat
 	add_child(halo)
 
+	# Secondary warm sources (lit windows etc.).
+	for wp in area.get("windows", []):
+		var wl := PointLight2D.new()
+		wl.texture = EnvFx.light_texture(28, 4)
+		wl.position = wp
+		wl.color = Pal.LAMP3
+		wl.energy = 1.1
+		add_child(wl)
+
 	thunder = AudioStreamPlayer.new()
 	thunder.stream = EnvFx.thunder_wav()
 	thunder.bus = "Ambience"
@@ -161,6 +170,7 @@ func apply_upgrades() -> void:
 	lamp_light.energy = lamp_energy()
 	lamp_light.texture_scale = 1.0 + 0.15 * Game.level("lamp")
 	Synth.set_rain_level(Game.rain_level())
+	Synth.set_reverb_wet(0.28 + 0.06 * Game.level("reverb"), minf(0.98, float(area.get("reverb_room", 0.78)) + 0.03 * Game.level("reverb")))
 
 
 # ------------------------------------------------------------------- drums

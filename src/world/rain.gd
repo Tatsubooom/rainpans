@@ -86,7 +86,7 @@ func _spawn_drip(p: Vector2) -> void:
 	_y.append(p.y)
 	_vy.append(40.0)
 	# The lip of the overhang projects onto a fixed band of the floor.
-	_depth.append(152.0 + _rng.randf_range(-1.5, 1.5))
+	_depth.append(float(area.get("drip_depth", 152.0)) + _rng.randf_range(-1.5, 1.5))
 	_len.append(2.0)
 	_drip.append(1)
 

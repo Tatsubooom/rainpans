@@ -1,0 +1,82 @@
+extends Node2D
+## Entry point. Builds the stage and HUD; also hosts the command-line hooks
+## used to capture screenshots and run scripted checks headlessly:
+##   -- --shot=path.png [--frames=N] [--demo] [--shelf] [--upgrades]
+
+var stage: Stage
+var hud: Hud
+var _args := {}
+var _frame := 0
+
+
+func _ready() -> void:
+	for a in OS.get_cmdline_user_args():
+		var kv: PackedStringArray = a.trim_prefix("--").split("=", true, 1)
+		_args[kv[0]] = kv[1] if kv.size() > 1 else "1"
+	if _args.has("reset"):
+		Game.reset()
+	if _args.has("demo"):
+		_demo_state()
+
+	stage = Stage.new()
+	add_child(stage)
+	stage.build(Game.area)
+	hud = Hud.new()
+	add_child(hud)
+	hud.bind_stage(stage)
+	hud.drag_requested.connect(stage.begin_shelf_drag)
+	hud.travel.connect(_travel)
+	stage.drum_struck.connect(_on_struck)
+
+	if Game.offline_gain > 0.0:
+		hud.toast("留守のあいだに 響き %s" % Game.fmt(Game.offline_gain))
+	elif Game.placed_in_area().is_empty():
+		hud.toast("棚から空き缶を、雨の当たる場所へ")
+	if _args.has("shelf"):
+		hud.toggle_shelf()
+	if _args.has("upgrades"):
+		hud.toggle_upgrades()
+	Synth.warm(Game.owned.keys())
+
+
+func _travel(area_id: String) -> void:
+	if area_id == Game.area:
+		return
+	Game.area = area_id
+	stage.build(area_id)
+	hud.bind_stage(stage)
+	Game.save_game()
+
+
+var hits := 0
+
+
+func _on_struck(_d: Drum, _amount: float) -> void:
+	hits += 1
+
+
+func _demo_state() -> void:
+	Game.resonance = float(_args.get("res", "1234"))
+	Game.total_earned = 50000.0
+	Game.owned = {"can": 3, "bucket": 2, "helmet": 1, "pot": 1, "bottle": 1, "drum": 1}
+	Game.levels["rain"] = int(_args.get("rain", "3"))
+	Game.levels["drip"] = 2
+	Game.placements = {"roof": [
+		{"id": "can", "x": 40.0, "y": 150.0},
+		{"id": "bucket", "x": 74.0, "y": 141.0},
+		{"id": "helmet", "x": 128.0, "y": 158.0},
+		{"id": "drum", "x": 172.0, "y": 146.0},
+		{"id": "can", "x": 214.0, "y": 152.0},
+		{"id": "pot", "x": 252.0, "y": 165.0},
+		{"id": "bottle", "x": 98.0, "y": 170.0},
+		{"id": "bucket", "x": 290.0, "y": 150.0},
+	]}
+
+
+func _process(_delta: float) -> void:
+	_frame += 1
+	if _args.has("shot") and _frame == int(_args.get("frames", "90")):
+		var img := get_viewport().get_texture().get_image()
+		img.save_png(_args.shot)
+		print("shot saved: ", _args.shot, " res=", Game.resonance, " hits=", hits, " fps=", Engine.get_frames_per_second())
+		get_tree().quit()

@@ -66,6 +66,7 @@ var _rate_acc := 0.0
 var _rate_t := 0.0
 var _save_t := 0.0
 var offline_gain := 0.0
+var debug_phase := -1.0 # forces time of day (screenshots)
 var _no_save := false
 
 

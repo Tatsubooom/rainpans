@@ -18,6 +18,7 @@ var glow_light: PointLight2D
 var halo: Sprite2D
 var modulate_node: CanvasModulate
 var sky_sprite: Sprite2D
+var horizon: Sprite2D
 var mist: Array[Sprite2D] = []
 var thunder: AudioStreamPlayer
 
@@ -49,6 +50,17 @@ func build(id: String) -> void:
 	add_child(modulate_node)
 
 	sky_sprite = _layer(layers.sky)
+	# Dusk/dawn light low on the horizon (faded in by time of day).
+	horizon = Sprite2D.new()
+	horizon.texture = EnvFx.horizon_texture(320, 70)
+	horizon.centered = false
+	horizon.position = Vector2(0, 52)
+	horizon.modulate.a = 0.0
+	var hmat := CanvasItemMaterial.new()
+	hmat.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
+	hmat.light_mode = CanvasItemMaterial.LIGHT_MODE_UNSHADED
+	horizon.material = hmat
+	add_child(horizon)
 	smoke = Smoke.new()
 	add_child(smoke)
 	smoke.setup(area.smoke)
@@ -167,7 +179,12 @@ func _spawn_drum(entry: Dictionary) -> Drum:
 	d.struck.connect(func(dr: Drum, amount: float): drum_struck.emit(dr, amount))
 	drums_node.add_child(d)
 	rain.drums.append(d)
+	_relight(d)
 	return d
+
+
+func _relight(d: Drum) -> void:
+	d.relight(area.lamp, 90.0 + 12.0 * Game.level("lamp"), area.lamp_color)
 
 
 func place_drum(id: String, pos: Vector2) -> Drum:
@@ -256,6 +273,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			_drag_entry = d.get_meta("entry")
 			d.ghost = true
 			d.hovered = false
+			d.tex = ImageTexture.create_from_image(d.img)
 			get_viewport().set_input_as_handled()
 
 
@@ -290,6 +308,7 @@ func _end_drag() -> void:
 		_drag_entry.y = p.y
 	d.position = Vector2(_drag_entry.x, _drag_entry.y)
 	d.degree = degree_for(d.position.x)
+	_relight(d)
 	d.ghost = false
 	d.valid = true
 
@@ -307,17 +326,88 @@ func _remove_drum(d: Drum) -> void:
 
 # ----------------------------------------------------------------- weather
 
+## Time of day keys: phase (0..1) -> ambient tint, horizon glow, lamp scale.
+const DAY_KEYS := [
+	[0.00, Color(1.00, 0.80, 0.84), 0.9, 0.7], # dusk
+	[0.18, Color(0.92, 0.95, 1.00), 0.0, 1.0], # night
+	[0.45, Color(0.74, 0.80, 0.96), 0.0, 1.1], # deep night
+	[0.70, Color(0.90, 0.92, 1.04), 0.25, 0.9], # before dawn
+	[0.80, Color(1.08, 1.00, 1.04), 1.0, 0.45], # dawn
+	[0.90, Color(1.15, 1.15, 1.18), 0.2, 0.25], # grey morning rain
+	[1.00, Color(1.00, 0.80, 0.84), 0.9, 0.7],
+]
+const DAY_LENGTH := 1440.0 # seconds of play for one full cycle
+
+var _wind := -0.08
+var _wind_target := -0.08
+var _gust := 0.0
+var _next_gust := 40.0
+var _wind_x := 0.0
+var _day_glow := 0.0
+var _day_lamp := 1.0
+
+
+func day_phase() -> float:
+	if Game.debug_phase >= 0.0:
+		return Game.debug_phase
+	if Game.level("time") <= 0:
+		return 0.25
+	return fmod(Game.play_time / DAY_LENGTH, 1.0)
+
+
+func _day_sample(phase: float) -> Array:
+	for i in DAY_KEYS.size() - 1:
+		var a: Array = DAY_KEYS[i]
+		var b: Array = DAY_KEYS[i + 1]
+		if phase >= a[0] and phase <= b[0]:
+			var t: float = (phase - a[0]) / (b[0] - a[0])
+			t = t * t * (3.0 - 2.0 * t)
+			return [(a[1] as Color).lerp(b[1], t), lerpf(a[2], b[2], t), lerpf(a[3], b[3], t)]
+	return [DAY_KEYS[1][1], 0.0, 1.0]
+
+
 func _process(delta: float) -> void:
 	_t += delta
+	var day := _day_sample(day_phase())
+	var amb: Color = area.ambient * (day[0] as Color)
+	_day_glow = day[1]
+	_day_lamp = day[2]
+	if horizon:
+		# Dusk burns rose; dawn comes in pale gold and grey-blue.
+		var ph := day_phase()
+		var tint := Color(1.0, 0.85, 0.8) if ph < 0.5 else Color(0.95, 1.1, 1.25)
+		horizon.modulate = Color(tint, _day_glow)
+
 	# Lantern flicker: slow breathing plus the odd gutter.
 	var f := _flicker.get_noise_1d(_t * 10.0)
-	glow_light.energy = 0.65 + f * 0.25
-	lamp_light.energy = lamp_energy() * (0.93 + f * 0.08)
-	halo.modulate.a = 0.9 + f * 0.1
+	glow_light.energy = (0.65 + f * 0.25) * _day_lamp
+	lamp_light.energy = lamp_energy() * (0.93 + f * 0.08) * _day_lamp
+	halo.modulate.a = (0.9 + f * 0.1) * clampf(_day_lamp, 0.3, 1.0)
+
+	# Wind: a slow wander, with an occasional gust that leans the rain over
+	# and sets the pipe chimes ringing.
+	_next_gust -= delta
+	if _next_gust <= 0.0:
+		_next_gust = randf_range(45.0, 120.0)
+		_gust = 1.0
+	_gust = maxf(0.0, _gust - delta / 7.0)
+	_wind_target = -0.06 + _flicker.get_noise_1d(_t * 0.4 + 50.0) * 0.08 - sin(_gust * PI) * 0.22
+	_wind = lerpf(_wind, _wind_target, minf(1.0, delta * 1.5))
+	rain.wind = _wind
+	rain_far.wind = _wind
+	smoke.wind = -6.0 + _wind * 60.0
+	_wind_x += delta * (1.0 - _wind * 10.0)
+	if _gust > 0.3 and randf() < delta * 3.0 * _gust:
+		for d in rain.drums:
+			var dr: Drum = d
+			if dr.id == "pipes" and not dr.ghost:
+				dr.strike(randf_range(0.15, 0.4))
 	for m in mist:
 		var sp: float = m.get_meta("speed")
 		var x0: float = m.get_meta("x0")
-		m.position.x = floorf(x0 + fmod(_t * sp + 400.0, 400.0) - 200.0) if absf(sp) > 1.0 else floorf(x0 + sin(_t * 0.1) * 20.0)
+		var tw: float = m.texture.get_width()
+		m.position.x = floorf(wrapf(x0 + _wind_x * sp, -tw, 320.0 + tw * 0.25))
+
 	# Distant lightning only in heavier rain.
 	if Game.rain_level() > 0.55:
 		_next_flash -= delta
@@ -325,10 +415,10 @@ func _process(delta: float) -> void:
 			_next_flash = randf_range(30.0, 90.0)
 			_flash = 1.0
 			get_tree().create_timer(randf_range(1.2, 3.0)).timeout.connect(func(): thunder.play())
+	var flash_on := false
 	if _flash > 0.0:
 		_flash = maxf(0.0, _flash - delta * 2.5)
-		var on := _flash > 0.75 or (_flash > 0.35 and _flash < 0.5)
-		var amb: Color = area.ambient
-		modulate_node.color = amb.lerp(Color(1.25, 1.3, 1.45), 0.5 if on else 0.0)
-		rain.flash = 0.6 if on else 0.0
-		rain_far.flash = rain.flash
+		flash_on = _flash > 0.75 or (_flash > 0.35 and _flash < 0.5)
+	modulate_node.color = amb.lerp(Color(1.25, 1.3, 1.45), 0.5 if flash_on else 0.0)
+	rain.flash = 0.6 if flash_on else 0.0
+	rain_far.flash = rain.flash

@@ -38,6 +38,24 @@ static func halo_texture(radius: int, color: Color) -> ImageTexture:
 	return c.texture()
 
 
+## Additive horizon glow for dusk and dawn: warm at the bottom, dithered
+## up into nothing.
+static func horizon_texture(w: int, h: int) -> ImageTexture:
+	var c := PixCanvas.new(w, h, Color(0, 0, 0, 1))
+	var ramp := [Color("000000"), Color("1a0c14"), Color("3a1820"), Color("5a2a22"), Color("7a4228")]
+	var n := ramp.size() - 1
+	for y in h:
+		var t := pow(float(y) / (h - 1), 1.6) * n
+		var i := mini(int(t), n - 1)
+		var f := t - i
+		for x in w:
+			# Break the glow up a little where clouds would sit.
+			var wob := sin(x * 0.05) * 0.25 + sin(x * 0.013 + 1.0) * 0.35
+			var c0: Color = ramp[i + 1] if f + wob * 0.2 > PixCanvas.bayer(x, y) else ramp[i]
+			c.img.set_pixel(x, y, c0)
+	return c.texture()
+
+
 ## A soft band of fog: a few flat translucent tones with dithered edges, so
 ## it reads as layered haze rather than noise.
 static func mist_texture(w: int, h: int, seed: int, color: Color, density: float) -> ImageTexture:

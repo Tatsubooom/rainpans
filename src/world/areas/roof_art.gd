@@ -265,8 +265,8 @@ static func _floor(rng: RandomNumberGenerator) -> Image:
 	c.rect(dx, 96, 22, FLOOR_TOP - 96 + 1, Pal.INK)
 	c.rect(dx - 2, 94, 26, 2, Pal.CON3)
 	c.vline(dx - 1, 96, FLOOR_TOP, Pal.CON1)
-	for y in range(FLOOR_TOP - 5, FLOOR_TOP + 1):
-		c.drect(dx + 3, y, 16, 1, Pal.RUST1, (y - (FLOOR_TOP - 6)) / 10.0)
+	c.hline(dx + 2, dx + 19, FLOOR_TOP, Pal.RUST0)
+	c.hline(dx + 6, dx + 15, FLOOR_TOP - 1, Pal.RUST0)
 	# A small sign, letters long gone.
 	c.rect(292, 72, 18, 9, Pal.RUST2)
 	c.rect(293, 73, 16, 7, Pal.RUST1)

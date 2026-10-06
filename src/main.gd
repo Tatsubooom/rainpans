@@ -17,6 +17,8 @@ func _ready() -> void:
 		Game.reset()
 	if _args.has("demo"):
 		_demo_state()
+	if _args.has("phase"):
+		Game.debug_phase = float(_args.phase)
 
 	stage = Stage.new()
 	add_child(stage)

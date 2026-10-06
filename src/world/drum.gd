@@ -19,6 +19,8 @@ var _ring := 0.0
 var _wobble := 0.0
 var _lit := 0.0
 var _hits_recent := 0.0
+var shadow_len := 0.0 # cast away from the lamp along the floor
+var shadow_dir := 1.0
 
 
 func setup(drum_id: String) -> void:
@@ -26,6 +28,44 @@ func setup(drum_id: String) -> void:
 	def = DrumDefs.get_def(id)
 	img = DrumDefs.make_image(id)
 	tex = ImageTexture.create_from_image(img)
+
+
+## Bakes a warm rim on the edges that face the lamp, stronger when close.
+func relight(lamp: Vector2, radius: float, color: Color) -> void:
+	var lit := img.duplicate() as Image
+	var tl := top_left()
+	var w := img.get_width()
+	var h := img.get_height()
+	for y in h:
+		for x in w:
+			var c := img.get_pixel(x, y)
+			if c.a == 0.0 or c == Pal.INK:
+				continue
+			var wp := tl + Vector2(x + 0.5, y + 0.5)
+			var to := lamp - wp
+			var dist := to.length()
+			if dist > radius:
+				continue
+			var k := 1.0 - dist / radius
+			var dir := to / maxf(dist, 0.001)
+			var nx := x + int(roundf(dir.x))
+			var ny := y + int(roundf(dir.y))
+			var open := nx < 0 or ny < 0 or nx >= w or ny >= h
+			if not open:
+				var n := img.get_pixel(nx, ny)
+				open = n.a == 0.0 or n == Pal.INK
+			if open:
+				# Facing the lamp: banded rim highlight.
+				var band := 2 if k > 0.6 else (1 if k > 0.3 else 0)
+				var rim: Color = [Pal.LAMP3, Pal.LAMP2, Pal.LAMP1][band]
+				lit.set_pixel(x, y, c.lerp(rim, 0.45 + 0.4 * k))
+			elif k > 0.45 and PixCanvas.bayer(x, y) < (k - 0.45):
+				# Inner warmth, dithered.
+				lit.set_pixel(x, y, c.lerp(color, 0.25))
+	tex = ImageTexture.create_from_image(lit)
+	var d := position.distance_to(lamp)
+	shadow_len = floorf(clampf((1.0 - d / (radius * 1.3)) * 14.0, 0.0, 12.0))
+	shadow_dir = 1.0 if position.x >= lamp.x else -1.0
 
 
 func size() -> Vector2i:
@@ -100,6 +140,14 @@ func _draw() -> void:
 			var edge := absf(x) > sw / 2 - 2
 			draw_rect(Rect2(x, 0, 1, 1), Pal.CON0 if not edge else Pal.CON1)
 		draw_rect(Rect2(-w / 2 + 1, 1, w - 2, 1), Pal.CON1)
+		if shadow_len > 0.0:
+			# Long soft shadow thrown by the lantern, thinning with distance.
+			for i in int(shadow_len):
+				var sx := (w / 2.0 + i) * shadow_dir - (0.0 if shadow_dir > 0 else 1.0)
+				if i < shadow_len * 0.6 or (i % 2 == 0):
+					draw_rect(Rect2(floorf(sx), 0, 1, 1), Pal.CON0)
+				if i < shadow_len * 0.35:
+					draw_rect(Rect2(floorf(sx), -1, 1, 1), Pal.CON1)
 	var bob := -1.0 if _wobble > 0.6 else 0.0
 	var mod := Color(1, 1, 1, 1)
 	if ghost:

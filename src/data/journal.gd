@@ -8,6 +8,8 @@ const ENTRIES := [
 	["bucket", "バケツは少しだけ低い声で返事をする。"],
 	["drip", "ひさしの縁から、同じ間隔でしずくが落ちる。時計みたいに。"],
 	["helmet", "ヘルメットの持ち主のことは、考えないことにした。"],
+	["hand", "指で弾くと、缶は少し驚いたように鳴った。"],
+	["loop", "自分で鳴らした音が、雨にまじって何度も帰ってくる。"],
 	["harmony3", "三つの音が重なると、それはもう音楽だった。"],
 	["pot", "鍋は、湯気よりも雨のほうが似合うのかもしれない。"],
 	["night", "夜が深くなると、雨の音が近くなる。"],
@@ -48,6 +50,10 @@ static func reached(hits: int) -> Array:
 			out.append(id)
 	if g.level("drip") > 0:
 		out.append("drip")
+	if g.settings.get("tip_loop", false):
+		out.append("hand")
+	if not g.loops.is_empty():
+		out.append("loop")
 	if g.distinct_placed() >= 3:
 		out.append("harmony3")
 	if g.level("rain") >= 5:

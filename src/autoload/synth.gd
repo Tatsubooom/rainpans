@@ -113,11 +113,13 @@ func set_area_bed(kind: String) -> void:
 
 
 ## Rain intensity 0..1 drives the ambience mix.
-func set_rain_level(level: float) -> void:
+func set_rain_level(level: float, scale := 1.0) -> void:
 	if rain_bed == null:
 		return
-	rain_bed.volume_db = lerpf(-26.0, -11.0, clampf(level * 1.4, 0.0, 1.0))
-	rain_patter.volume_db = lerpf(-42.0, -15.0, clampf(level, 0.0, 1.0))
+	# `scale` 0..1 fades the whole rain bed out (the ending).
+	var fade := linear_to_db(maxf(0.0001, scale))
+	rain_bed.volume_db = lerpf(-26.0, -11.0, clampf(level * 1.4, 0.0, 1.0)) + fade
+	rain_patter.volume_db = lerpf(-42.0, -15.0, clampf(level, 0.0, 1.0)) + fade
 
 
 # --------------------------------------------------------------------- voices

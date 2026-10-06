@@ -163,52 +163,103 @@ static func _rates(main: Node) -> void:
 	print("SCENARIO OK rates")
 
 
-## Fast-forwards a fresh game with a simple greedy player that buys and
-## places through the real Stage, printing milestones. Ends with a shot.
+## Fast-forwards a fresh game with a simple greedy player that buys, places,
+## swaps out weak drums when full and moves on to new places, printing
+## milestones. Stops when the ending starts (or the time runs out).
 static func _progress(main: Node) -> void:
 	Game.reset()
+	Game.tutorial = 99
 	var stage: Stage = main.stage
 	stage.build("roof")
 	main.hud.bind_stage(stage)
-	Engine.time_scale = 16.0
+	Engine.time_scale = float(OS.get_environment("PROGRESS_SPEED")) if OS.get_environment("PROGRESS_SPEED") != "" else 16.0
 	var minutes := float(OS.get_environment("PROGRESS_MIN")) if OS.get_environment("PROGRESS_MIN") != "" else 30.0
 	var seen := {}
 	var start := Time.get_ticks_msec()
+	var mark := func(what: String):
+		if not seen.has(what):
+			seen[what] = true
+			print("  %6.1f min  %-8s rate=%s/s" % [Game.play_time / 60.0, what, Game.fmt(Game.rate)])
 	while Game.play_time < minutes * 60.0:
 		await main.get_tree().create_timer(2.0).timeout
-		# Place every free copy somewhere valid (prefer under drips/front).
+		stage = main.stage
+		# Move on when the next place is affordable.
+		for a in Game.AREAS:
+			if not a in Game.areas_open and Game.resonance >= Game.area_cost(a) and Game.AREAS.find(a) == Game.areas_open.size():
+				Game.open_area(a)
+				main._travel(a)
+				stage = main.stage
+				mark.call(a)
+		if Game.can_upgrade("wait"):
+			Game.buy_upgrade("wait")
+			mark.call("ENDING")
+			break
 		for id in DrumDefs.ORDER:
-			while Game.free_count(id) > 0:
-				if not _auto_place(stage, id):
-					break
-		# Buy the best value thing we can afford.
+			while Game.free_count(id) > 0 and _auto_place(stage, id):
+				pass
 		var bought := true
-		while bought:
+		var guard := 0
+		while bought and guard < 50:
+			guard += 1
 			bought = false
 			var options := []
-			for id in ["rain", "reverb", "lamp", "echo", "drip"]:
+			for id in ["rain", "reverb", "lamp", "echo", "drip", "time"]:
 				if Game.can_upgrade(id):
 					options.append(["u", id, Game.upgrade_cost(id)])
 			for id in DrumDefs.ORDER:
-				if Game.drum_visible(id) and Game.resonance >= Game.drum_cost(id) and _has_room(stage, id):
-					options.append(["d", id, Game.drum_cost(id)])
+				if not Game.drum_visible(id) or Game.resonance < Game.drum_cost(id):
+					continue
+				if Game.area_full():
+					# Only worth it if it beats the weakest drum standing here.
+					var weakest := _weakest(stage)
+					if weakest == null or DrumDefs.get_def(id).yield <= weakest.def.yield:
+						continue
+				options.append(["d", id, Game.drum_cost(id)])
 			options.sort_custom(func(a, b): return a[2] < b[2])
-			if not options.is_empty():
-				var o: Array = options[0]
-				if o[0] == "u":
-					Game.buy_upgrade(o[1])
+			if options.is_empty():
+				break
+			var o: Array = options[0]
+			if o[0] == "u":
+				Game.buy_upgrade(o[1])
+				mark.call(o[1])
+			else:
+				Game.buy_drum(o[1])
+				mark.call(o[1])
+				if Game.area_full():
+					var w := _weakest(stage)
+					var pos := w.position
+					stage._remove_drum(w)
+					await main.get_tree().process_frame
+					var probe := _probe(o[1])
+					if stage.valid_spot(probe, pos):
+						stage.place_drum(o[1], pos)
+					else:
+						_auto_place(stage, o[1])
+					probe.free()
 				else:
-					Game.buy_drum(o[1])
-				bought = true
-				var key: String = o[1] + (str(Game.level(o[1])) if o[0] == "u" else "")
-				if not seen.has(o[1]):
-					seen[o[1]] = true
-					print("  %6.1f min  %s" % [Game.play_time / 60.0, o[1]])
-	print("placed=", Game.placed_in_area().size(), " rate=", Game.fmt(Game.rate), "/s res=", Game.fmt(Game.resonance), " levels=", Game.levels)
+					_auto_place(stage, o[1])
+			bought = true
+	print("end: area=", Game.area, " placed=", Game.placed_in_area().size(), " rate=", Game.fmt(Game.rate), "/s res=", Game.fmt(Game.resonance), " levels=", Game.levels)
 	Engine.time_scale = 1.0
 	await main.get_tree().create_timer(1.0).timeout
 	main.get_viewport().get_texture().get_image().save_png("res://shots/progress.png")
-	print("SCENARIO OK progress (%.0fs real)" % ((Time.get_ticks_msec() - start) / 1000.0))
+	print("SCENARIO OK progress (%.0fs real, %.0f game min)" % [(Time.get_ticks_msec() - start) / 1000.0, Game.play_time / 60.0])
+
+
+static func _probe(id: String) -> Drum:
+	var d := Drum.new()
+	d.setup(id)
+	return d
+
+
+static func _weakest(stage: Stage) -> Drum:
+	var best: Drum = null
+	for d in stage.rain.drums:
+		if d.ghost:
+			continue
+		if best == null or d.def.yield < best.def.yield:
+			best = d
+	return best
 
 
 static func _has_room(stage: Stage, id: String) -> bool:

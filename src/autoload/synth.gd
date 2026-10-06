@@ -124,16 +124,20 @@ func set_rain_level(level: float, scale := 1.0) -> void:
 
 # --------------------------------------------------------------------- voices
 
-func sample(id: String) -> AudioStreamWAV:
-	if not _samples.has(id):
-		_samples[id] = _make_drum(DrumDefs.get_def(id))
-	return _samples[id]
+## Each drum has two takes: a firm strike and a soft one (upper partials and
+## the impact click pulled back, a slower attack) for light drops.
+func sample(id: String, soft := false) -> AudioStreamWAV:
+	var key := id + ("~" if soft else "")
+	if not _samples.has(key):
+		_samples[key] = _make_drum(DrumDefs.get_def(id), soft)
+	return _samples[key]
 
 
 ## Pre-builds all voices so the first hit of a new drum never stutters.
 func warm(ids: Array) -> void:
 	for id in ids:
 		sample(id)
+		sample(id, true)
 
 
 ## Scale degree (can be negative or > 4) to pitch multiplier.
@@ -205,7 +209,7 @@ func play(id: String, degree: int, pos: Vector2, velocity: float, key: int, forc
 func _voice(id: String, degree: int, pos: Vector2, velocity: float) -> void:
 	var p := _voices[_next_voice]
 	_next_voice = (_next_voice + 1) % VOICES
-	p.stream = sample(id)
+	p.stream = sample(id, velocity < 0.55)
 	p.pitch_scale = degree_ratio(degree) * randf_range(0.996, 1.004)
 	p.volume_db = linear_to_db(clampf(velocity, 0.05, 1.0)) - 6.0
 	p.global_position = pos
@@ -214,7 +218,7 @@ func _voice(id: String, degree: int, pos: Vector2, velocity: float) -> void:
 
 # ------------------------------------------------------------------ synthesis
 
-func _make_drum(d: Dictionary) -> AudioStreamWAV:
+func _make_drum(d: Dictionary, soft := false) -> AudioStreamWAV:
 	var modes: Array = d.modes
 	var longest := 0.0
 	for m in modes:
@@ -227,11 +231,14 @@ func _make_drum(d: Dictionary) -> AudioStreamWAV:
 	var f0: float = d.freq
 	var rng := RandomNumberGenerator.new()
 	rng.seed = hash(d.name)
-	for m in modes:
+	for mi in modes.size():
+		var m: Array = modes[mi]
 		var freq: float = f0 * m[0] * rng.randf_range(0.997, 1.003)
 		if freq >= RATE * 0.45:
 			continue
 		var amp: float = m[1]
+		if soft:
+			amp /= 1.0 + mi * 1.3
 		var decay: float = m[2]
 		# Recursive sine oscillator: y[n] = 2cos(w)y[n-1] - y[n-2].
 		var w := TAU * freq / RATE
@@ -249,7 +256,7 @@ func _make_drum(d: Dictionary) -> AudioStreamWAV:
 			env *= g
 	# Impact: a short burst of filtered noise (the drop itself).
 	var nz: Array = d.noise
-	var namp: float = nz[0]
+	var namp: float = nz[0] * (0.3 if soft else 1.0)
 	var ndec: float = nz[1]
 	var lp := 0.0
 	var ng := exp(-1.0 / (ndec * RATE))
@@ -258,8 +265,8 @@ func _make_drum(d: Dictionary) -> AudioStreamWAV:
 		lp += (rng.randf_range(-1.0, 1.0) - lp) * 0.35
 		buf[i] += lp * nenv * 2.0
 		nenv *= ng
-	# Soft attack (2ms) and normalisation.
-	var att := int(0.002 * RATE)
+	# Soft attack (2ms, 7ms for the soft take) and normalisation.
+	var att := int((0.007 if soft else 0.002) * RATE)
 	var peak := 0.0001
 	for i in n:
 		if i < att:

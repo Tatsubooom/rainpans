@@ -110,6 +110,7 @@ func _test_catch() -> void:
 
 func _test_synth() -> void:
 	for id in DrumDefs.ORDER:
+		check(Synth.sample(id, true) != Synth.sample(id), "soft take differs: " + id)
 		var s := Synth.sample(id)
 		check(s.data.size() > 2000, "sample has data: " + id)
 		var peak := 0

@@ -16,6 +16,7 @@
 | 手入れ（U / E） | 雨脚・雨樋・残響などの強化、場所の移動 |
 | ドラッグ | 置いた雨受けを動かす（左右で音程が変わる） |
 | 右クリック / 棚へドロップ | 雨受けを棚に戻す |
+| ・・・（Esc） | 音量、拍にそろえる、全画面、雨の手帳 |
 
 音程は左から右へ D メジャー・ペンタトニックを上っていくので、どう並べても濁りません。
 ひさしの下は雨が当たりませんが、縁から落ちるしずくが一定のリズムを刻みます。
@@ -27,7 +28,19 @@ tools/setup_godot.sh          # Godot 4.3 を ~/.local/share/godot に入れる�
 godot --path .                # 起動
 tools/shot.sh shots/a.png --demo --frames=120   # 仮想ディスプレイでスクリーンショット
 tools/test.sh                 # ヘッドレスのロジックテスト
+tools/scenario.sh drag        # 入力を再生して配置操作を確認
+tools/check.sh                # GDScript の構文チェック
+tools/balance_sim.py          # 経済バランスのシミュレーション
 ```
+
+### 書き出し
+
+```sh
+tools/export.sh               # build/web（ブラウザ版）と build/windows/Rainpans.exe を作る
+```
+
+`.github/workflows/pages.yml` は main へのマージ時に Web 版を GitHub Pages へ公開します
+（リポジトリの Settings → Pages で Source を「GitHub Actions」にすると有効になります）。
 
 `--demo` はドラムを並べた状態から始めるデバッグ用フラグ、`--shelf` / `--upgrades` はパネルを開いた状態で起動します。
 クラウドセッションでは `.claude/settings.json` の SessionStart フックが Godot を自動で入れます。

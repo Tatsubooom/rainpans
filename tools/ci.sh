@@ -4,6 +4,6 @@ set -e
 cd "$(dirname "$0")/.."
 tools/check.sh
 tools/test.sh
-for s in drag travel loop; do
+for s in drag travel loop swap; do
   tools/scenario.sh "$s"
 done

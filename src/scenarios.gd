@@ -17,6 +17,8 @@ static func run(main: Node, name: String) -> void:
 			_sheet()
 		"loop":
 			await _loop(main)
+		"swap":
+			await _swap(main)
 		_:
 			print("SCENARIO FAIL unknown ", name)
 	main.get_tree().quit()
@@ -356,3 +358,40 @@ static func _loop(main: Node) -> void:
 		return
 	Game.rain_scale = 1.0
 	print("SCENARIO OK loop (%d notes replayed)" % played)
+
+
+## Fill the roof, then drop a new bucket from the shelf onto a can: the can
+## goes back to the shelf and the bucket takes its place.
+static func _swap(main: Node) -> void:
+	Game.reset()
+	Game.tutorial = 99
+	Game.owned = {"can": Game.capacity(), "bucket": 1}
+	var stage: Stage = main.stage
+	stage.build("roof")
+	main.hud.bind_stage(stage)
+	var i := 0
+	for y in [142, 152, 162, 172]:
+		for x in range(20, 300, 56):
+			if i < Game.capacity():
+				stage.place_drum("can", Vector2(x, y))
+				i += 1
+	if not Game.area_full():
+		print("SCENARIO FAIL could not fill the roof: ", Game.placed_in_area().size())
+		return
+	if not main.hud.shelf.visible:
+		main.hud.toggle_shelf()
+	await _frames(main, 2)
+	var slot := Vector2(46, 34)
+	var target := Vector2(76, 152)
+	await _glide(main, Vector2(100, 90), slot)
+	_button(slot, true)
+	await _frames(main, 2)
+	await _glide(main, slot, target, 10)
+	_button(target, false)
+	await _frames(main, 3)
+	var cans := Game.placed_count("can")
+	var buckets := Game.placed_count("bucket")
+	if buckets != 1 or cans != Game.capacity() - 1:
+		print("SCENARIO FAIL swap: cans=", cans, " buckets=", buckets)
+		return
+	print("SCENARIO OK swap")

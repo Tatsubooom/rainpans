@@ -283,6 +283,31 @@ func valid_spot(d: Drum, pos: Vector2) -> bool:
 	return true
 
 
+## The placed drum that stops `d` from standing at `pos`, if any.
+func _blocking_drum(d: Drum, pos: Vector2) -> Drum:
+	var half := d.size().x / 2.0
+	for o in rain.drums:
+		var other: Drum = o
+		if other == d or other.ghost:
+			continue
+		var oh := other.size().x / 2.0
+		if absf(other.position.y - pos.y) < 7.0 and absf(other.position.x - pos.x) < half + oh:
+			return other
+	return null
+
+
+## Would `d` fit at `pos` if `gone` were taken away?
+func _fits_without(d: Drum, pos: Vector2, gone: Drum) -> bool:
+	var was := gone.ghost
+	gone.ghost = true
+	var drums_before: Array = rain.drums.duplicate()
+	rain.drums.erase(gone)
+	var ok := valid_spot(d, pos)
+	rain.drums = drums_before
+	gone.ghost = was
+	return ok
+
+
 func drum_at(p: Vector2) -> Drum:
 	var best: Drum = null
 	for d in rain.drums:
@@ -296,8 +321,7 @@ func begin_shelf_drag(id: String) -> void:
 	if _drag != null:
 		return
 	if Game.area_full():
-		hover_changed.emit("ここにはもう置けない（%d/%d）　棚へ戻すと場所が空く" % [Game.placed_in_area().size(), Game.capacity()])
-		return
+		hover_changed.emit("いっぱい（%d/%d）　置いてある雨受けの上に落とすと入れ替わる" % [Game.placed_in_area().size(), Game.capacity()])
 	var d := Drum.new()
 	d.setup(id)
 	d.ghost = true
@@ -402,7 +426,12 @@ func _update_drag_to(d: Drum) -> void:
 func _update_drag() -> void:
 	var p := (_mouse + _drag_offset).floor()
 	_drag.position = p
-	_drag.valid = valid_spot(_drag, p) and not shelf_rect.has_point(_mouse) and not (_drag_from_shelf and Game.area_full())
+	var ok := valid_spot(_drag, p) and not (_drag_from_shelf and Game.area_full())
+	if _drag_from_shelf and not ok:
+		# Hovering a different drum means "swap": show it as valid.
+		var under := _blocking_drum(_drag, p)
+		ok = under != null and under.id != _drag.id and _fits_without(_drag, p, under)
+	_drag.valid = ok and not shelf_rect.has_point(_mouse)
 
 
 func _end_drag() -> void:
@@ -414,7 +443,14 @@ func _end_drag() -> void:
 	var over_shelf := shelf_rect.has_point(mouse)
 	if _drag_from_shelf:
 		d.queue_free()
-		if not over_shelf and valid_spot(d, p) and not Game.area_full():
+		if over_shelf:
+			return
+		# Dropped onto a drum that is already there: swap them (the old one
+		# goes back to the shelf). This is how a full place gets upgraded.
+		var under := _blocking_drum(d, p)
+		if under != null and under.id != d.id and _fits_without(d, p, under):
+			_remove_drum(under)
+		if valid_spot(d, p) and not Game.area_full():
 			place_drum(d.id, p)
 			Synth.play(d.id, degree_for(p.x), p, 0.5, -1)
 		return

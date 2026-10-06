@@ -115,6 +115,9 @@ func toggle_settings() -> void:
 	settings = SettingsPanel.new()
 	root.add_child(settings)
 	settings.closed.connect(toggle_settings)
+	settings.open_help.connect(func():
+		toggle_settings()
+		root.add_child(HelpPanel.new()))
 	settings.open_journal.connect(func():
 		toggle_settings()
 		var jp := JournalPanel.new()

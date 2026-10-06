@@ -4,6 +4,7 @@ extends Control
 
 signal closed
 signal open_journal
+signal open_help
 signal info(text: String)
 
 const ROW_H := 13
@@ -20,7 +21,7 @@ func _ready() -> void:
 
 
 func _rows() -> Array:
-	return ["master", "drums", "ambience", "quantize", "fullscreen", "journal", "reset", "close"]
+	return ["master", "drums", "ambience", "quantize", "fullscreen", "help", "journal", "reset", "close"]
 
 
 func _label(id: String) -> String:
@@ -37,6 +38,8 @@ func _label(id: String) -> String:
 		"fullscreen":
 			var fs := DisplayServer.window_get_mode() == DisplayServer.WINDOW_MODE_FULLSCREEN
 			return "全画面　　　　　" + ("する" if fs else "しない")
+		"help":
+			return "あそびかた"
 		"journal":
 			return "雨の手帳　　　　%d/%d" % [Game.journal.size(), Journal.ENTRIES.size()]
 		"reset":
@@ -108,6 +111,8 @@ func _activate(id: String, up: bool) -> void:
 				_confirm_reset = 3.0
 		"journal":
 			open_journal.emit()
+		"help":
+			open_help.emit()
 		"close":
 			closed.emit()
 	Game.save_game()

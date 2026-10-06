@@ -69,6 +69,8 @@ func _ready() -> void:
 		stage.critters.debug_sit()
 	if _args.has("settings"):
 		hud.toggle_settings()
+	if _args.has("help"):
+		hud.root.add_child(HelpPanel.new())
 	if Game.offline_gain > 0.0:
 		hud.toast("留守のあいだに 響き %s" % Game.fmt(Game.offline_gain))
 	if _args.has("shelf"):

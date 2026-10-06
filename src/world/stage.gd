@@ -24,6 +24,7 @@ var modulate_node: CanvasModulate
 var sky_sprite: Sprite2D
 var horizon: Sprite2D
 var mist: Array[Sprite2D] = []
+var fog_banks: Array[Sprite2D] = []
 var thunder: AudioStreamPlayer
 
 ## set by HUD: rectangles (in viewport px) where dropping returns to shelf
@@ -128,6 +129,18 @@ func build(id: String) -> void:
 		shaft.material = smat
 		add_child(shaft)
 	_mist(EnvFx.mist_texture(300, 14, 3, Pal.FOG0, 0.7), Vector2(0, 160), 0.8)
+	# Thick fog banks that only show on misty nights.
+	fog_banks.clear()
+	for i in 3:
+		var fb := Sprite2D.new()
+		fb.texture = EnvFx.mist_texture(360, 40, 20 + i, Pal.FOG1, 1.6)
+		fb.centered = false
+		fb.position = Vector2(-20 - i * 30, 70 + i * 28)
+		fb.modulate.a = 0.0
+		fb.set_meta("speed", 1.2 + i * 0.5)
+		fb.set_meta("x0", fb.position.x)
+		add_child(fb)
+		fog_banks.append(fb)
 
 	# Lantern: a banded warm light plus a tight bright core.
 	lamp_light = PointLight2D.new()
@@ -451,6 +464,22 @@ var _wind_x := 0.0
 var _day_glow := 0.0
 var _day_lamp := 1.0
 
+## Weather moods drift every few minutes. They change only the look and
+## sound, never the economy.
+const WEATHERS := ["rain", "mist", "storm"]
+var weather := "rain"
+var _weather_t := 240.0
+var _mist_k := 0.0 # 0..1 how foggy
+var _storm_k := 0.0 # 0..1 how stormy
+
+
+## Screenshot/debug hook: jump straight into a weather mood.
+func force_weather(w: String) -> void:
+	weather = w
+	_weather_t = 9999.0
+	_mist_k = 1.0 if w == "mist" else 0.0
+	_storm_k = 1.0 if w == "storm" else 0.0
+
 
 func day_phase() -> float:
 	if Game.debug_phase >= 0.0:
@@ -492,12 +521,20 @@ func _process(delta: float) -> void:
 
 	# Wind: a slow wander, with an occasional gust that leans the rain over
 	# and sets the pipe chimes ringing.
-	_next_gust -= delta
+	_weather_t -= delta
+	if _weather_t <= 0.0:
+		# Mostly plain rain; mist and storms come and go.
+		var r := randf()
+		weather = "mist" if r < 0.25 else ("storm" if r < 0.42 else "rain")
+		_weather_t = randf_range(240.0, 540.0)
+	_mist_k = move_toward(_mist_k, 1.0 if weather == "mist" else 0.0, delta / 30.0)
+	_storm_k = move_toward(_storm_k, 1.0 if weather == "storm" else 0.0, delta / 30.0)
+	_next_gust -= delta * (1.0 + _storm_k * 3.0)
 	if _next_gust <= 0.0:
 		_next_gust = randf_range(45.0, 120.0)
 		_gust = 1.0
 	_gust = maxf(0.0, _gust - delta / 7.0)
-	_wind_target = -0.06 + _flicker.get_noise_1d(_t * 0.4 + 50.0) * 0.08 - sin(_gust * PI) * 0.22
+	_wind_target = -0.06 - _storm_k * 0.08 + _flicker.get_noise_1d(_t * 0.4 + 50.0) * (0.08 + _storm_k * 0.08) - sin(_gust * PI) * 0.22
 	_wind = lerpf(_wind, _wind_target, minf(1.0, delta * 1.5))
 	rain.wind = _wind
 	rain_far.wind = _wind
@@ -510,6 +547,10 @@ func _process(delta: float) -> void:
 			var dr: Drum = d
 			if dr.id == "pipes" and not dr.ghost:
 				dr.strike(randf_range(0.15, 0.4))
+	for fb in fog_banks:
+		fb.modulate.a = _mist_k
+		var fsp: float = fb.get_meta("speed")
+		fb.position.x = floorf(wrapf(float(fb.get_meta("x0")) + _wind_x * fsp, -360.0, 40.0))
 	for m in mist:
 		var sp: float = m.get_meta("speed")
 		var x0: float = m.get_meta("x0")
@@ -517,8 +558,8 @@ func _process(delta: float) -> void:
 		m.position.x = floorf(wrapf(x0 + _wind_x * sp, -tw, 320.0 + tw * 0.25))
 
 	# Distant lightning only in heavier rain.
-	if Game.rain_level() > 0.55:
-		_next_flash -= delta
+	if Game.rain_level() > 0.55 or _storm_k > 0.5:
+		_next_flash -= delta * (1.0 + _storm_k * 2.0)
 		if _next_flash <= 0.0:
 			_next_flash = randf_range(30.0, 90.0)
 			_flash = 1.0
@@ -529,6 +570,8 @@ func _process(delta: float) -> void:
 	if _flash > 0.0:
 		_flash = maxf(0.0, _flash - delta * 2.5)
 		flash_on = _flash > 0.75 or (_flash > 0.35 and _flash < 0.5)
+	# Mist lifts and greys the darks a little; storms deepen them.
+	amb = amb.lerp(Color(1.05, 1.08, 1.12), _mist_k * 0.25).lerp(Color(0.8, 0.84, 0.95), _storm_k * 0.3)
 	modulate_node.color = amb.lerp(Color(1.25, 1.3, 1.45), 0.5 if flash_on else 0.0)
 	rain.flash = 0.6 if flash_on else 0.0
 	rain_far.flash = rain.flash

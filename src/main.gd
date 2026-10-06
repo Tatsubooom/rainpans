@@ -63,6 +63,8 @@ func _ready() -> void:
 		Engine.time_scale = float(_args.speed)
 	if _args.has("ending"):
 		start_ending()
+	if _args.has("weather"):
+		stage.force_weather(_args.weather)
 	if _args.has("crow"):
 		stage.critters.debug_sit()
 	if _args.has("settings"):

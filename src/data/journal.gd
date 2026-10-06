@@ -18,6 +18,7 @@ const ENTRIES := [
 	["rail", "線路の先は途切れている。それでも雨は向こうまで降っている。"],
 	["kettle", "やかんの注ぎ口が、小さく口笛を吹いた。"],
 	["pipes", "風が吹くたびに、パイプが勝手に歌いだす。"],
+	["glass", "ガラスに当たる雨は、内側で聴くと少し遠い。"],
 	["canal", "地下には雨が届かない。届くのは、穴から落ちてくるぶんだけ。"],
 	["plate", "鉄の板が鳴ると、しばらく世界が黙る。"],
 	["tarp", "いちばん低い音を敷くと、ほかの音が浮かんで聞こえた。"],
@@ -55,6 +56,8 @@ static func reached(hits: int) -> Array:
 		out.append("full")
 	if "rail" in g.areas_open:
 		out.append("rail")
+	if "glass" in g.areas_open:
+		out.append("glass")
 	if "canal" in g.areas_open:
 		out.append("canal")
 	if g.level("time") > 0:

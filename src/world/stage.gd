@@ -62,6 +62,7 @@ func build(id: String) -> void:
 	horizon.material = hmat
 	add_child(horizon)
 	smoke = Smoke.new()
+	smoke.steam = area.get("smoke_steam", false)
 	add_child(smoke)
 	smoke.setup(area.smoke)
 	rain_far = Rain.new()
@@ -87,7 +88,23 @@ func build(id: String) -> void:
 	rain.rate = Game.rain_rate()
 	rain.setup(area, Rain.NEAR)
 
+	if area.has("water_y"):
+		var water := CanalWater.new()
+		water.y0 = area.water_y
+		add_child(water)
 	_layer(layers.front)
+	if area.has("shaft"):
+		# A shaft of grey daylight/moonlight through the hole in the vault.
+		var shaft := Sprite2D.new()
+		var sr: Rect2 = area.shaft
+		shaft.texture = EnvFx.shaft_texture(int(sr.size.x), int(sr.size.y))
+		shaft.centered = false
+		shaft.position = sr.position
+		var smat := CanvasItemMaterial.new()
+		smat.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
+		smat.light_mode = CanvasItemMaterial.LIGHT_MODE_UNSHADED
+		shaft.material = smat
+		add_child(shaft)
 	_mist(EnvFx.mist_texture(300, 14, 3, Pal.FOG0, 0.7), Vector2(0, 160), 0.8)
 
 	# Lantern: a banded warm light plus a tight bright core.

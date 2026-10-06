@@ -62,11 +62,19 @@ func setup(a: Dictionary, which: int) -> void:
 func _spawn(y: float = -8.0) -> void:
 	var floor_rect: Rect2 = area.floor
 	var x := _rng.randf_range(-20.0, 340.0)
+	# Some areas only let rain in through an opening.
+	var key := "far_rain_rect" if layer == FAR else "rain_rect"
+	if area.has(key):
+		var r: Rect2 = area[key]
+		x = _rng.randf_range(r.position.x, r.end.x)
+		y = maxf(y, r.position.y)
 	var depth: float
 	var speed: float
 	var ln: float
 	if layer == FAR:
 		depth = _rng.randf_range(110.0, 132.0)
+		if area.has("far_rain_rect"):
+			depth = (area.far_rain_rect as Rect2).end.y
 		speed = _rng.randf_range(150.0, 190.0)
 		ln = _rng.randf_range(2.0, 4.0)
 	else:

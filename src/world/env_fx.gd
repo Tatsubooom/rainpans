@@ -56,6 +56,25 @@ static func horizon_texture(w: int, h: int) -> ImageTexture:
 	return c.texture()
 
 
+## A slanted beam of cold light: dithered columns, brightest at the top.
+static func shaft_texture(w: int, h: int) -> ImageTexture:
+	var c := PixCanvas.new(w, h, Color(0, 0, 0, 1))
+	for y in h:
+		var fall := 1.0 - float(y) / h
+		var spread := float(y) * 0.18
+		for x in w:
+			var u := (x - spread * 0.5) / maxf(1.0, w - spread)
+			if u < 0.0 or u > 1.0:
+				continue
+			var edge := minf(u, 1.0 - u) * 4.0
+			var streak := 0.75 + 0.25 * sin(x * 0.7 + y * 0.02)
+			var v := clampf(edge, 0.0, 1.0) * fall * streak * 0.5
+			var q := floorf(v * 3.0 + PixCanvas.bayer(x, y) * 0.999) / 3.0
+			if q > 0.0:
+				c.img.set_pixel(x, y, Color(0.16 * q, 0.2 * q, 0.26 * q, 1.0))
+	return c.texture()
+
+
 ## A soft band of fog: a few flat translucent tones with dithered edges, so
 ## it reads as layered haze rather than noise.
 static func mist_texture(w: int, h: int, seed: int, color: Color, density: float) -> ImageTexture:

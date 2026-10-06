@@ -3,6 +3,7 @@ extends Node2D
 ## Thin smoke rising from distant fires, leaning with the wind.
 
 var sources: Array = []
+var steam := false # pale, faster, thinner (leaking pipes)
 var wind := -6.0
 var _p: Array = [] # [x, y, age, life, size]
 var _acc := 0.0
@@ -47,6 +48,8 @@ func _draw() -> void:
 		var t: float = q[2] / q[3]
 		var r: float = q[4] + t * 4.0
 		var col := Pal.FOG1 if t < 0.3 else (Pal.FOG0 if t < 0.65 else Pal.NIGHT4)
+		if steam:
+			col = Pal.FOG2 if t < 0.3 else (Pal.FOG1 if t < 0.6 else Pal.FOG0)
 		var cx := floorf(q[0])
 		var cy := floorf(q[1])
 		var ir := int(r)

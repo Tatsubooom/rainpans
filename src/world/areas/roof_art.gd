@@ -32,6 +32,7 @@ static func build() -> Dictionary:
 		"puddles": [Rect2(36, 155, 48, 9), Rect2(112, 166, 56, 8), Rect2(98, 143, 30, 5), Rect2(150, 150, 22, 4)],
 		"smoke": [Vector2(146, 70)],
 		"floor_y": FLOOR_TOP,
+		"perches": [Vector2(125, 67), Vector2(300, 58), Vector2(40, 110), Vector2(118, 110), Vector2(212, 110)],
 		"ambient": Color(0.92, 0.95, 1.0),
 		"reverb_room": 0.78,
 	}

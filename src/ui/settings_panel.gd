@@ -3,6 +3,7 @@ extends Control
 ## Quiet settings: volumes, beat quantize, fullscreen, erase the save.
 
 signal closed
+signal open_journal
 signal info(text: String)
 
 const ROW_H := 13
@@ -19,7 +20,7 @@ func _ready() -> void:
 
 
 func _rows() -> Array:
-	return ["master", "drums", "ambience", "quantize", "fullscreen", "reset", "close"]
+	return ["master", "drums", "ambience", "quantize", "fullscreen", "journal", "reset", "close"]
 
 
 func _label(id: String) -> String:
@@ -36,6 +37,8 @@ func _label(id: String) -> String:
 		"fullscreen":
 			var fs := DisplayServer.window_get_mode() == DisplayServer.WINDOW_MODE_FULLSCREEN
 			return "全画面　　　　　" + ("する" if fs else "しない")
+		"journal":
+			return "雨の手帳　　　　%d/%d" % [Game.journal.size(), Journal.ENTRIES.size()]
 		"reset":
 			return "もう一度押すと消える" if _confirm_reset > 0.0 else "記録を消す"
 		"close":
@@ -103,6 +106,8 @@ func _activate(id: String, up: bool) -> void:
 				get_tree().reload_current_scene()
 			else:
 				_confirm_reset = 3.0
+		"journal":
+			open_journal.emit()
 		"close":
 			closed.emit()
 	Game.save_game()

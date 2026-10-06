@@ -61,6 +61,8 @@ var area := "roof"
 var areas_open := ["roof"]
 var settings := {"master": 0.8, "drums": 0.9, "ambience": 0.8, "quantize": false}
 var play_time := 0.0
+var hits_total := 0
+var journal: Array = [] # ids of 雨の手帳 lines already seen
 
 ## rolling income estimate (per second) used for display and offline gains
 var rate := 0.0
@@ -118,6 +120,7 @@ func multiplier() -> float:
 
 func earn(base: float) -> float:
 	var v := base * multiplier()
+	hits_total += 1
 	resonance += v
 	total_earned += v
 	_rate_acc += v
@@ -287,6 +290,8 @@ func to_dict() -> Dictionary:
 		"settings": settings,
 		"rate": rate,
 		"play_time": play_time,
+		"hits": hits_total,
+		"journal": journal,
 		"saved_at": Time.get_unix_time_from_system(),
 	}
 
@@ -316,6 +321,8 @@ func from_dict(d: Dictionary) -> void:
 		settings[k] = s[k]
 	rate = d.get("rate", 0.0)
 	play_time = d.get("play_time", 0.0)
+	hits_total = int(d.get("hits", 0))
+	journal = d.get("journal", [])
 	var saved_at: float = d.get("saved_at", 0.0)
 	if saved_at > 0.0:
 		var away := clampf(Time.get_unix_time_from_system() - saved_at, 0.0, OFFLINE_CAP_SEC)
@@ -354,5 +361,8 @@ func reset() -> void:
 	area = "roof"
 	areas_open = ["roof"]
 	rate = 0.0
+	hits_total = 0
+	journal = []
+	play_time = 0.0
 	apply_audio()
 	changed.emit()

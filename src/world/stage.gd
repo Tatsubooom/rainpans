@@ -12,6 +12,7 @@ var rain_far: Rain
 var rain: Rain
 var ripples: Ripples
 var smoke: Smoke
+var critters: Critters
 var drums_node: Node2D
 var lamp_light: PointLight2D
 var glow_light: PointLight2D
@@ -81,6 +82,10 @@ func build(id: String) -> void:
 	drums_node = Node2D.new()
 	drums_node.y_sort_enabled = true
 	add_child(drums_node)
+
+	critters = Critters.new()
+	add_child(critters)
+	critters.setup(area)
 
 	rain = Rain.new()
 	rain.ripples = ripples

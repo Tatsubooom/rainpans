@@ -22,6 +22,7 @@ func _ready() -> void:
 	_test_catch()
 	_test_synth()
 	_test_capacity()
+	_test_journal()
 	print("%d checks, %d failures" % [checks, failures])
 	get_tree().quit(1 if failures > 0 else 0)
 
@@ -127,3 +128,14 @@ func _test_capacity() -> void:
 	check(not Game.area_full(), "other area has its own room")
 	check(Game.capacity() > Game.AREA_CAP["roof"], "deeper areas hold more")
 	Game.reset()
+
+
+func _test_journal() -> void:
+	var ids := {}
+	for e in Journal.ENTRIES:
+		check(not ids.has(e[0]), "journal id unique: " + e[0])
+		ids[e[0]] = true
+		check(UiKit.text_width(e[1]) <= 290.0, "journal line fits: %s (%d)" % [e[0], UiKit.text_width(e[1])])
+	Game.reset()
+	check(Journal.reached(0).is_empty(), "nothing reached at start")
+	check("first_hit" in Journal.reached(1), "first hit line")

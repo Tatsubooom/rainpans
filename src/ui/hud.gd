@@ -70,6 +70,10 @@ func toggle_settings() -> void:
 	settings = SettingsPanel.new()
 	root.add_child(settings)
 	settings.closed.connect(toggle_settings)
+	settings.open_journal.connect(func():
+		toggle_settings()
+		var jp := JournalPanel.new()
+		root.add_child(jp))
 	settings.info.connect(_info)
 
 
@@ -94,6 +98,11 @@ func _info(t: String) -> void:
 
 func toast(t: String) -> void:
 	info_line.toast(t)
+
+
+## 雨の手帳 lines: longer, softer, in a cooler colour.
+func journal_line(t: String) -> void:
+	info_line.toast(t, 7.0, true)
 
 
 func _on_unlocked(what: String) -> void:
@@ -207,15 +216,26 @@ class InfoLine:
 		_text = t
 		queue_redraw()
 
-	func toast(t: String) -> void:
+	var _soft := false
+	var _quiet := 0.0
+
+	func toast(t: String, secs := 4.0, soft := false) -> void:
 		_toast = t
-		_toast_t = 4.0
+		_toast_t = secs
+		_soft = soft
+		_quiet = 0.0
 		queue_redraw()
+
+	## True when nothing has been shown for a little while.
+	func idle() -> bool:
+		return _toast_t <= 0.0 and _quiet > 6.0
 
 	func _process(delta: float) -> void:
 		if _toast_t > 0.0:
 			_toast_t -= delta
 			queue_redraw()
+		else:
+			_quiet += delta
 
 	func _draw() -> void:
 		var t := _text
@@ -223,6 +243,8 @@ class InfoLine:
 		if t == "" and _toast_t > 0.0:
 			t = _toast
 			col = Pal.LAMP1 if _toast_t > 0.6 or int(_toast_t * 10.0) % 2 == 0 else Pal.LAMP3
+			if _soft:
+				col = Pal.RAIN_HI if _toast_t > 0.8 else (Pal.RAIN if _toast_t > 0.4 else Pal.FOG1)
 		if t == "":
 			return
 		var tw := UiKit.text_width(t)

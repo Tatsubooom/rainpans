@@ -36,6 +36,8 @@ func _ready() -> void:
 
 	if not (_args.has("shot") or _args.has("scenario")) or _args.has("intro"):
 		add_child(Intro.new())
+	if _args.has("crow"):
+		stage.critters.debug_sit()
 	if _args.has("settings"):
 		hud.toggle_settings()
 	if Game.offline_gain > 0.0:
@@ -61,6 +63,8 @@ func _travel(area_id: String) -> void:
 
 
 var hits := 0
+var _journal_t := 0.0
+var _journal_queue: Array = []
 
 
 func _on_struck(_d: Drum, _amount: float) -> void:
@@ -93,8 +97,19 @@ func _demo_state() -> void:
 	]}
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
 	_frame += 1
+	_journal_t += delta
+	if _journal_t > 2.0:
+		_journal_t = 0.0
+		for id in Journal.reached(Game.hits_total):
+			if not id in Game.journal and not id in _journal_queue:
+				_journal_queue.append(id)
+		# One line at a time, spaced out, never on top of another toast.
+		if not _journal_queue.is_empty() and hud.info_line.idle():
+			var id: String = _journal_queue.pop_front()
+			Game.journal.append(id)
+			hud.journal_line(Journal.text(id))
 	if _args.has("shot") and _frame == int(_args.get("frames", "90")):
 		var img := get_viewport().get_texture().get_image()
 		img.save_png(_args.shot)

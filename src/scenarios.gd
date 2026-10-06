@@ -81,10 +81,42 @@ static func _drag(main: Node) -> void:
 	if Game.placed_in_area().size() != 1 or Game.free_count("bucket") != 1:
 		print("SCENARIO FAIL bucket dropped in the sky was placed")
 		return
+	# 2b) Click the placed can without moving: it is played by hand.
+	var can0: Drum = stage.rain.drums[0]
+	var tap := can0.position + Vector2(0, -4)
+	await _glide(main, Vector2(60, 80), tap, 4)
+	var hits0 := Game.hits_total
+	_button(tap, true)
+	await _frames(main, 1)
+	_button(tap, false)
+	await _frames(main, 2)
+	if Game.hits_total <= hits0 or absf(Game.placed_in_area()[0].x - 120.0) > 0.5:
+		print("SCENARIO FAIL click did not play (or moved) the can")
+		return
+	# 2c) Keyboard: A plays the leftmost drum; wheel retunes it.
+	var hits1 := Game.hits_total
+	var k := InputEventKey.new()
+	k.keycode = KEY_A
+	k.pressed = true
+	Input.parse_input_event(k)
+	await _frames(main, 2)
+	if Game.hits_total <= hits1:
+		print("SCENARIO FAIL key A did not play")
+		return
+	var wheel := InputEventMouseButton.new()
+	wheel.position = tap
+	wheel.global_position = tap
+	wheel.button_index = MOUSE_BUTTON_WHEEL_UP
+	wheel.pressed = true
+	Input.parse_input_event(wheel)
+	await _frames(main, 2)
+	if int(Game.placed_in_area()[0].get("tune", 0)) != 1:
+		print("SCENARIO FAIL wheel did not retune: ", Game.placed_in_area()[0])
+		return
 	# 3) Move the can, then right-click it back to the shelf.
 	var can: Drum = stage.rain.drums[0]
 	var grab := can.position + Vector2(0, -4)
-	await _glide(main, Vector2(60, 80), grab)
+	await _glide(main, tap, grab)
 	_button(grab, true)
 	await _frames(main, 1)
 	await _glide(main, grab, Vector2(200, 160), 8)

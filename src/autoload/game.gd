@@ -315,7 +315,7 @@ func from_dict(d: Dictionary) -> void:
 		var arr := []
 		for p in pl[a]:
 			if DrumDefs.DEFS.has(p.get("id", "")):
-				arr.append({"id": p.id, "x": float(p.x), "y": float(p.y)})
+				arr.append({"id": p.id, "x": float(p.x), "y": float(p.y), "tune": int(p.get("tune", 0))})
 		placements[a] = arr
 	area = d.get("area", "roof")
 	areas_open = d.get("areas_open", ["roof"])

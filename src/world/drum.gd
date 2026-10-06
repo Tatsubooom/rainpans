@@ -20,6 +20,8 @@ var _wobble := 0.0
 var _lit := 0.0
 var _hits_recent := 0.0
 var _notes: Array = [] # [x, y, age] little glyphs drifting up after a hit
+var tune := 0 # player's offset in scale steps (mouse wheel)
+var _tune_show := 0.0
 var shadow_len := 0.0 # cast away from the lamp along the floor
 var shadow_dir := 1.0
 
@@ -114,19 +116,23 @@ func try_catch(x: float, y0: float, y1: float, depth: float, vel: float) -> bool
 	return true
 
 
-func strike(vel: float) -> void:
-	var played: bool = Synth.play(id, degree, global_position, vel * randf_range(0.6, 1.0), get_instance_id())
+## `by_hand`: struck by the player rather than the rain (always shows a
+## note glyph, earns a little less so the rain stays the main source).
+func strike(vel: float, by_hand := false) -> void:
+	var v := vel if by_hand else vel * randf_range(0.6, 1.0)
+	var played: bool = Synth.play(id, degree, global_position, v, get_instance_id())
 	_ring = 1.0
 	_wobble = 1.0
 	_hits_recent += 1.0
-	var amount: float = Game.earn(def.yield * (1.0 if played else 0.5))
-	if played and randf() < 0.3 and _notes.size() < 3:
+	var amount: float = Game.earn(def.yield * (1.0 if played else 0.5) * (0.6 if by_hand else 1.0))
+	if played and (by_hand or randf() < 0.3) and _notes.size() < 3:
 		_notes.append([randf_range(-3.0, 3.0), -img.get_height() - 3.0, 0.0])
 	struck.emit(self, amount)
 
 
 func _process(delta: float) -> void:
 	_ring = maxf(0.0, _ring - delta * 3.0)
+	_tune_show = maxf(0.0, _tune_show - delta)
 	_wobble = maxf(0.0, _wobble - delta * 8.0)
 	_hits_recent = maxf(0.0, _hits_recent - delta * 0.8)
 	var i := 0
@@ -179,6 +185,13 @@ func _draw() -> void:
 						n = true
 				if n:
 					draw_rect(Rect2(tl + Vector2(x, y), Vector2.ONE), Pal.LAMP1)
+	if _tune_show > 0.0 and not ghost:
+		# Tuning pips under the drum: centre mark plus one pip per step.
+		var y := 3.0
+		draw_rect(Rect2(0, y, 1, 1), Pal.FOG1)
+		for k in absi(tune):
+			var x := (k + 1) * 2 * signi(tune)
+			draw_rect(Rect2(x, y, 1, 1), Pal.LAMP1 if tune > 0 else Pal.RAIN)
 	for n in _notes:
 		# A three-pixel note: head and stem, fading through the palette.
 		var age: float = n[2]
@@ -199,3 +212,7 @@ func _draw() -> void:
 		draw_rect(Rect2(floorf(cx + spread), floorf(y), 1, 1), col)
 		if _ring > 0.7:
 			draw_rect(Rect2(floorf(cx), floorf(tl.y + 2.0), 1, 1), Pal.BONE)
+
+
+func show_tuning() -> void:
+	_tune_show = 1.5

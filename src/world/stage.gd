@@ -36,6 +36,11 @@ var _flash := 0.0
 var _next_flash := 25.0
 var _flicker := FastNoiseLite.new()
 var _mouse := Vector2(-100, -100) # last pointer position in world px
+var _press: Drum = null # pressed but not yet moved: a click strikes it
+var _press_at := Vector2.ZERO
+
+const PLAY_KEYS := [KEY_A, KEY_S, KEY_D, KEY_F, KEY_G, KEY_H, KEY_J, KEY_K, KEY_L, KEY_SEMICOLON,
+	KEY_1, KEY_2, KEY_3, KEY_4, KEY_5, KEY_6, KEY_7, KEY_8, KEY_9, KEY_0]
 
 
 func build(id: String) -> void:
@@ -44,6 +49,7 @@ func build(id: String) -> void:
 	mist.clear()
 	_drag = null
 	_hover = null
+	_press = null
 	area_id = id
 	area = AreaLibrary.build(id)
 	var layers: Dictionary = area.layers
@@ -209,7 +215,8 @@ func _spawn_drum(entry: Dictionary) -> Drum:
 	var d := Drum.new()
 	d.setup(entry.id)
 	d.position = Vector2(entry.x, entry.y)
-	d.degree = degree_for(entry.x)
+	d.tune = int(entry.get("tune", 0))
+	d.degree = degree_for(entry.x) + d.tune
 	d.set_meta("entry", entry)
 	d.struck.connect(func(dr: Drum, amount: float): drum_struck.emit(dr, amount))
 	drums_node.add_child(d)
@@ -274,6 +281,16 @@ func begin_shelf_drag(id: String) -> void:
 func _input(event: InputEvent) -> void:
 	if event is InputEventMouse:
 		_mouse = get_canvas_transform().affine_inverse() * event.position
+	if _press != null:
+		if event is InputEventMouseMotion and _mouse.distance_to(_press_at) >= 3.0:
+			_begin_move(_press, _press_at)
+			_press = null
+		elif event is InputEventMouseButton and not event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+			# A click without moving: play it.
+			_press.strike(0.85, true)
+			_press = null
+			get_viewport().set_input_as_handled()
+			return
 	if _drag == null:
 		return
 	if event is InputEventMouseMotion:
@@ -295,7 +312,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			_hover = h
 			if _hover:
 				_hover.hovered = true
-				hover_changed.emit("%s　—　つかんで動かす／右クリックで棚へ" % _hover.def.name)
+				hover_changed.emit("%s　鳴らす:クリック 移動:ドラッグ 音程:ホイール" % _hover.def.name)
 			else:
 				hover_changed.emit("")
 	if event is InputEventMouseButton and event.pressed:
@@ -307,14 +324,43 @@ func _unhandled_input(event: InputEvent) -> void:
 			_remove_drum(d)
 			get_viewport().set_input_as_handled()
 		elif event.button_index == MOUSE_BUTTON_LEFT:
-			_drag = d
-			_drag_from_shelf = false
-			_drag_offset = d.position - p
-			_drag_entry = d.get_meta("entry")
-			d.ghost = true
-			d.hovered = false
-			d.tex = ImageTexture.create_from_image(d.img)
+			_press = d
+			_press_at = p
 			get_viewport().set_input_as_handled()
+		elif event.button_index == MOUSE_BUTTON_WHEEL_UP or event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
+			var step := 1 if event.button_index == MOUSE_BUTTON_WHEEL_UP else -1
+			d.tune = clampi(d.tune + step, -5, 5)
+			var entry: Dictionary = d.get_meta("entry")
+			entry["tune"] = d.tune
+			d.degree = degree_for(d.position.x) + d.tune
+			d.show_tuning()
+			d.strike(0.6, true)
+			get_viewport().set_input_as_handled()
+
+
+func _begin_move(d: Drum, from: Vector2) -> void:
+	_drag = d
+	_drag_from_shelf = false
+	_drag_offset = d.position - from
+	_drag_entry = d.get_meta("entry")
+	d.ghost = true
+	d.hovered = false
+	d.tex = ImageTexture.create_from_image(d.img)
+	_update_drag()
+
+
+## Keyboard as an instrument: home row then number row, left to right.
+func _unhandled_key_input(event: InputEvent) -> void:
+	if not (event is InputEventKey) or not event.pressed or event.echo:
+		return
+	var idx := PLAY_KEYS.find(event.keycode)
+	if idx < 0:
+		return
+	var sorted: Array = rain.drums.filter(func(x): return not x.ghost)
+	sorted.sort_custom(func(a, b): return a.position.x < b.position.x)
+	if idx < sorted.size():
+		sorted[idx].strike(0.85, true)
+		get_viewport().set_input_as_handled()
 
 
 func _update_drag_to(d: Drum) -> void:
@@ -347,7 +393,7 @@ func _end_drag() -> void:
 		_drag_entry.x = p.x
 		_drag_entry.y = p.y
 	d.position = Vector2(_drag_entry.x, _drag_entry.y)
-	d.degree = degree_for(d.position.x)
+	d.degree = degree_for(d.position.x) + d.tune
 	_relight(d)
 	d.ghost = false
 	d.valid = true

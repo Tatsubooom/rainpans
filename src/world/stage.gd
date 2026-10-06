@@ -12,6 +12,7 @@ var rain_far: Rain
 var rain: Rain
 var ripples: Ripples
 var reflection: Reflection
+var env_anim: EnvAnim
 var smoke: Smoke
 var critters: Critters
 var drums_node: Node2D
@@ -90,6 +91,9 @@ func build(id: String) -> void:
 	reflection = Reflection.new()
 	add_child(reflection)
 	reflection.setup(area)
+	env_anim = EnvAnim.new()
+	add_child(env_anim)
+	env_anim.setup(area)
 
 	drums_node = Node2D.new()
 	drums_node.y_sort_enabled = true
@@ -488,6 +492,8 @@ func _process(delta: float) -> void:
 	rain.wind = _wind
 	rain_far.wind = _wind
 	smoke.wind = -6.0 + _wind * 60.0
+	env_anim.wind = _wind
+	env_anim.rain_level = Game.rain_level() * Game.rain_scale
 	_wind_x += delta * (1.0 - _wind * 10.0)
 	if _gust > 0.3 and randf() < delta * 3.0 * _gust:
 		for d in rain.drums:

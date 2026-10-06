@@ -21,6 +21,7 @@ func _ready() -> void:
 	_test_drum_defs()
 	_test_catch()
 	_test_synth()
+	_test_capacity()
 	print("%d checks, %d failures" % [checks, failures])
 	get_tree().quit(1 if failures > 0 else 0)
 
@@ -114,3 +115,15 @@ func _test_synth() -> void:
 		for i in range(0, mini(s.data.size(), 20000), 2):
 			peak = maxi(peak, absi(s.data.decode_s16(i)))
 		check(peak > 8000, "sample is audible: %s (%d)" % [id, peak])
+
+
+func _test_capacity() -> void:
+	Game.reset()
+	check(not Game.area_full(), "empty area is not full")
+	for i in Game.capacity():
+		Game.placed_in_area().append({"id": "can", "x": 10.0 + i, "y": 150.0})
+	check(Game.area_full(), "area full at capacity")
+	Game.area = "rail"
+	check(not Game.area_full(), "other area has its own room")
+	check(Game.capacity() > Game.AREA_CAP["roof"], "deeper areas hold more")
+	Game.reset()

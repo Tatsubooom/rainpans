@@ -47,6 +47,8 @@ const AREAS := ["roof", "rail", "canal"]
 const AREA_COST := {"roof": 0.0, "rail": 5.0e7, "canal": 5.0e10}
 ## Each deeper place carries sound further: a flat multiplier while you are there.
 const AREA_MULT := {"roof": 1.0, "rail": 3.0, "canal": 9.0}
+## How many rain drums each place can hold.
+const AREA_CAP := {"roof": 20, "rail": 24, "canal": 28}
 
 var resonance := 0.0
 var total_earned := 0.0
@@ -204,6 +206,14 @@ func distinct_placed() -> int:
 	for p in placed_in_area():
 		seen[p.id] = true
 	return seen.size()
+
+
+func capacity() -> int:
+	return AREA_CAP.get(area, 20)
+
+
+func area_full() -> bool:
+	return placed_in_area().size() >= capacity()
 
 
 func area_cost(id: String) -> float:

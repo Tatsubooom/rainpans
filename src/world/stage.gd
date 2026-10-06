@@ -251,6 +251,9 @@ func drum_at(p: Vector2) -> Drum:
 func begin_shelf_drag(id: String) -> void:
 	if _drag != null:
 		return
+	if Game.area_full():
+		hover_changed.emit("ここにはもう置けない（%d/%d）　棚へ戻すと場所が空く" % [Game.placed_in_area().size(), Game.capacity()])
+		return
 	var d := Drum.new()
 	d.setup(id)
 	d.ghost = true
@@ -312,7 +315,7 @@ func _update_drag_to(d: Drum) -> void:
 func _update_drag() -> void:
 	var p := (_mouse + _drag_offset).floor()
 	_drag.position = p
-	_drag.valid = valid_spot(_drag, p) and not shelf_rect.has_point(_mouse)
+	_drag.valid = valid_spot(_drag, p) and not shelf_rect.has_point(_mouse) and not (_drag_from_shelf and Game.area_full())
 
 
 func _end_drag() -> void:
@@ -324,7 +327,7 @@ func _end_drag() -> void:
 	var over_shelf := shelf_rect.has_point(mouse)
 	if _drag_from_shelf:
 		d.queue_free()
-		if not over_shelf and valid_spot(d, p):
+		if not over_shelf and valid_spot(d, p) and not Game.area_full():
 			place_drum(d.id, p)
 			Synth.play(d.id, degree_for(p.x), p, 0.5, -1)
 		return

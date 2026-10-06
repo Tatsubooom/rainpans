@@ -78,12 +78,18 @@ func _describe(i: int) -> String:
 	var d := DrumDefs.get_def(id)
 	var free := Game.free_count(id)
 	if free > 0:
-		return "%s　%s　（ドラッグで置く）" % [d.name, d.desc]
+		return "%s　%s　（ドラッグで置く　%d/%d）" % [d.name, d.desc, Game.placed_in_area().size(), Game.capacity()]
 	return "%s　%s　響き %s で手に入れる" % [d.name, d.desc, Game.fmt(Game.drum_cost(id))]
 
 
 func _draw() -> void:
 	UiKit.panel(self, Rect2(Vector2.ZERO, size), Pal.NIGHT0, Pal.NIGHT3)
+	# How full this place is, as a row of pips along the bottom edge.
+	var cap := Game.capacity()
+	var used := Game.placed_in_area().size()
+	for k in cap:
+		var px := 6 + k * (308.0 / cap)
+		draw_rect(Rect2(floorf(px), HEIGHT - 2, 2, 1), Pal.LAMP2 if k < used else Pal.NIGHT2)
 	for i in DrumDefs.ORDER.size():
 		var id: String = DrumDefs.ORDER[i]
 		var x := 6 + i * SLOT_W

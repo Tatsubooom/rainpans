@@ -51,6 +51,7 @@ func _ready() -> void:
 	looper.stage = stage
 	add_child(looper)
 	stage.hand_strike.connect(looper.on_hand_strike)
+	stage.hand_strike.connect(_on_hand_strike)
 	hud.top.looper = looper
 	Game.unlocked.connect(func(what: String):
 		if what == "upgrade:wait":
@@ -75,6 +76,17 @@ func _ready() -> void:
 	Synth.warm(Game.owned.keys())
 	if _args.has("scenario"):
 		Scenarios.run(self, _args.scenario)
+
+
+var _hand_strikes := 0
+
+
+## After a little playing by hand, mention the looper once.
+func _on_hand_strike(_d: Drum, _v: float) -> void:
+	_hand_strikes += 1
+	if _hand_strikes == 10 and not Game.settings.get("tip_loop", false):
+		Game.settings["tip_loop"] = true
+		hud.toast("R で、いま弾いたフレーズを録音できる。もう一度 R でループ")
 
 
 func start_ending() -> void:

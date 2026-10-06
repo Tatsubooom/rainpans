@@ -11,6 +11,7 @@ var area: Dictionary
 var rain_far: Rain
 var rain: Rain
 var ripples: Ripples
+var reflection: Reflection
 var smoke: Smoke
 var critters: Critters
 var drums_node: Node2D
@@ -86,6 +87,9 @@ func build(id: String) -> void:
 	ripples = Ripples.new()
 	add_child(ripples)
 	ripples.setup(area)
+	reflection = Reflection.new()
+	add_child(reflection)
+	reflection.setup(area)
 
 	drums_node = Node2D.new()
 	drums_node.y_sort_enabled = true
@@ -470,6 +474,7 @@ func _process(delta: float) -> void:
 	glow_light.energy = (0.65 + f * 0.25) * _day_lamp
 	lamp_light.energy = lamp_energy() * (0.93 + f * 0.08) * _day_lamp
 	halo.modulate.a = (0.9 + f * 0.1) * clampf(_day_lamp, 0.3, 1.0)
+	reflection.energy = clampf(_day_lamp, 0.0, 1.0) * (0.85 + f * 0.15)
 
 	# Wind: a slow wander, with an occasional gust that leans the rain over
 	# and sets the pipe chimes ringing.

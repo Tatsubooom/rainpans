@@ -102,6 +102,7 @@ func _on_struck(_d: Drum, _amount: float) -> void:
 
 
 func _demo_state() -> void:
+	Game.tutorial = 99
 	Game.resonance = float(_args.get("res", "1234"))
 	Game.total_earned = 50000.0
 	Game.owned = {"can": 3, "bucket": 2, "helmet": 1, "pot": 1, "bottle": 1, "drum": 1, "tin": 1, "kettle": 1, "pipes": 1}

@@ -44,7 +44,7 @@ const UPGRADES := {
 	"wait": {
 		"name": "雨上がりを待つ",
 		"desc": "いちばん深い場所で、雨がやむのを待つ。",
-		"base": 2.0e13, "growth": 1.0, "max": 1, "requires": "canal",
+		"base": 5.0e12, "growth": 1.0, "max": 1, "requires": "canal",
 	},
 }
 

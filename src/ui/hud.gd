@@ -175,6 +175,9 @@ func _unhandled_key_input(event: InputEvent) -> void:
 				toggle_upgrades()
 			KEY_ESCAPE:
 				toggle_settings()
+			KEY_H:
+				# Photo mode: hide every bit of UI until H is pressed again.
+				root.visible = not root.visible
 
 
 # ---------------------------------------------------------------------------

@@ -5,6 +5,7 @@ extends Node2D
 
 signal drum_struck(drum: Drum, amount: float)
 signal hover_changed(text: String)
+signal hand_strike(drum: Drum, vel: float)
 
 var area_id := "roof"
 var area: Dictionary
@@ -238,6 +239,13 @@ func _relight(d: Drum) -> void:
 	d.relight(area.lamp, 90.0 + 12.0 * Game.level("lamp"), area.lamp_color)
 
 
+func drum_for_entry(entry: Dictionary) -> Drum:
+	for d in rain.drums:
+		if not d.ghost and d.get_meta("entry") == entry:
+			return d
+	return null
+
+
 func place_drum(id: String, pos: Vector2) -> Drum:
 	var entry := {"id": id, "x": pos.x, "y": pos.y}
 	Game.placed_in_area().append(entry)
@@ -297,6 +305,7 @@ func _input(event: InputEvent) -> void:
 		elif event is InputEventMouseButton and not event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 			# A click without moving: play it.
 			_press.strike(0.85, true)
+			hand_strike.emit(_press, 0.85)
 			_press = null
 			get_viewport().set_input_as_handled()
 			return
@@ -369,6 +378,7 @@ func _unhandled_key_input(event: InputEvent) -> void:
 	sorted.sort_custom(func(a, b): return a.position.x < b.position.x)
 	if idx < sorted.size():
 		sorted[idx].strike(0.85, true)
+		hand_strike.emit(sorted[idx], 0.85)
 		get_viewport().set_input_as_handled()
 
 

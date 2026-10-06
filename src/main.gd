@@ -5,6 +5,7 @@ extends Node2D
 
 var stage: Stage
 var hud: Hud
+var looper: Looper
 var _args := {}
 var _frame := 0
 
@@ -46,6 +47,11 @@ func _ready() -> void:
 	hud.drag_requested.connect(stage.begin_shelf_drag)
 	hud.travel.connect(_travel)
 	stage.drum_struck.connect(_on_struck)
+	looper = Looper.new()
+	looper.stage = stage
+	add_child(looper)
+	stage.hand_strike.connect(looper.on_hand_strike)
+	hud.top.looper = looper
 	Game.unlocked.connect(func(what: String):
 		if what == "upgrade:wait":
 			start_ending())
@@ -87,6 +93,7 @@ func _travel(area_id: String) -> void:
 	Game.area = area_id
 	stage.build(area_id)
 	hud.bind_stage(stage)
+	looper.load_from_save()
 	if Game.placed_in_area().is_empty():
 		hud.toast("%s。棚から雨受けを並べよう（%d 個まで）" % [AreaLibrary.NAMES[area_id], Game.capacity()])
 	Game.save_game()

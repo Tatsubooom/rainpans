@@ -191,6 +191,7 @@ class TopBar:
 	var upgrades_open := false
 	var blink_shelf := false
 	var blink_up := false
+	var looper: Looper
 	var _shown := 0.0
 	var _hover := -1
 	const BTN_SET := Rect2(226, 3, 15, 13)
@@ -244,9 +245,30 @@ class TopBar:
 		_button(BTN_SHELF, "棚", shelf_open or (blink_shelf and pulse), _hover == 0)
 		_button(BTN_UP, "手入れ", upgrades_open or (blink_up and pulse), _hover == 1)
 		_button(BTN_SET, "", false, _hover == 2)
+		_draw_looper()
 		# A tiny gear-less "settings" glyph: three dots.
 		for k in 3:
 			draw_rect(Rect2(BTN_SET.position.x + 4 + k * 3, BTN_SET.position.y + 6, 1, 1), Pal.RAIN)
+
+	func _draw_looper() -> void:
+		if looper == null:
+			return
+		var x := 200.0
+		var y := 7.0
+		if looper.recording:
+			# Blinking red dot while recording.
+			if int(Time.get_ticks_msec() / 400) % 2 == 0:
+				draw_rect(Rect2(x + 14, y - 1, 3, 3), Color("d0482e"))
+				draw_rect(Rect2(x + 15, y - 2, 1, 5), Color("d0482e"))
+				draw_rect(Rect2(x + 13, y, 5, 1), Color("d0482e"))
+			UiKit.text(self, Vector2(x - 8, 3), "録", Pal.LAMP1)
+		elif looper.length > 0.0:
+			# A small ring that fills as the loop goes round.
+			var p := looper.progress()
+			for k in 12:
+				var a := TAU * k / 12.0 - PI / 2.0
+				var q := Vector2(x + 15 + roundf(cos(a) * 4.0), y + 1 + roundf(sin(a) * 4.0))
+				draw_rect(Rect2(q, Vector2.ONE), Pal.LAMP1 if float(k) / 12.0 <= p else Pal.NIGHT3)
 
 	func _button(r: Rect2, label: String, on: bool, hover: bool) -> void:
 		UiKit.panel(self, r, Pal.NIGHT2 if (on or hover) else Pal.NIGHT0, Pal.LAMP3 if on else Pal.NIGHT3)

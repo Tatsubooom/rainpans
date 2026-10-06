@@ -69,6 +69,7 @@ var play_time := 0.0
 var hits_total := 0
 var journal: Array = [] # ids of 雨の手帳 lines already seen
 var tutorial := 0 # onboarding step (see Hud._tutorial)
+var loops := {} # area -> {length, notes} recorded phrases (see Looper)
 
 ## rolling income estimate (per second) used for display and offline gains
 var rate := 0.0
@@ -311,6 +312,7 @@ func to_dict() -> Dictionary:
 		"hits": hits_total,
 		"journal": journal,
 		"tutorial": tutorial,
+		"loops": loops,
 		"saved_at": Time.get_unix_time_from_system(),
 	}
 
@@ -343,6 +345,7 @@ func from_dict(d: Dictionary) -> void:
 	hits_total = int(d.get("hits", 0))
 	journal = d.get("journal", [])
 	tutorial = int(d.get("tutorial", 99))
+	loops = d.get("loops", {})
 	var saved_at: float = d.get("saved_at", 0.0)
 	if saved_at > 0.0:
 		var away := clampf(Time.get_unix_time_from_system() - saved_at, 0.0, OFFLINE_CAP_SEC)
@@ -396,6 +399,7 @@ func reset() -> void:
 	rate = 0.0
 	hits_total = 0
 	journal = []
+	loops = {}
 	tutorial = 0
 	play_time = 0.0
 	apply_audio()

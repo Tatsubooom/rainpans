@@ -15,6 +15,8 @@ static func run(main: Node, name: String) -> void:
 			await _travel(main)
 		"sheet":
 			_sheet()
+		"loop":
+			await _loop(main)
 		_:
 			print("SCENARIO FAIL unknown ", name)
 	main.get_tree().quit()
@@ -299,3 +301,58 @@ static func _sheet() -> void:
 		d.free()
 	c.img.save_png("res://shots/sheet.png")
 	print("SCENARIO OK sheet")
+
+
+static func _key(k: Key) -> void:
+	var e := InputEventKey.new()
+	e.keycode = k
+	e.pressed = true
+	Input.parse_input_event(e)
+	var up := InputEventKey.new()
+	up.keycode = k
+	up.pressed = false
+	Input.parse_input_event(up)
+
+
+## Record a three-note phrase with the keyboard, stop, and check that the
+## loop keeps playing it with no input; then clear it.
+static func _loop(main: Node) -> void:
+	Game.reset()
+	Game.tutorial = 99
+	Game.levels["rain"] = 0
+	Game.rain_scale = 0.0 # silence the rain so only the loop strikes
+	Game.owned = {"can": 1, "bucket": 1}
+	main.stage.build("roof")
+	main.hud.bind_stage(main.stage)
+	main.looper.load_from_save()
+	main.stage.place_drum("can", Vector2(60, 150))
+	main.stage.place_drum("bucket", Vector2(200, 150))
+	main.stage.rain.drip_rate = 0.0
+	await _frames(main, 3)
+	_key(KEY_R)
+	await _frames(main, 2)
+	for k in [KEY_A, KEY_S, KEY_A]:
+		_key(k)
+		await main.get_tree().create_timer(0.3).timeout
+	_key(KEY_R)
+	await _frames(main, 2)
+	var lp: Looper = main.looper
+	if lp.recording or lp.notes.size() != 3 or lp.length <= 0.0:
+		print("SCENARIO FAIL loop not recorded: notes=", lp.notes.size(), " len=", lp.length)
+		return
+	var h0 := Game.hits_total
+	await main.get_tree().create_timer(lp.length * 2.0 + 0.2).timeout
+	var played := Game.hits_total - h0
+	if played < 5:
+		print("SCENARIO FAIL loop played only ", played, " notes")
+		return
+	if not Game.loops.has("roof"):
+		print("SCENARIO FAIL loop not stored for save")
+		return
+	_key(KEY_BACKSPACE)
+	await _frames(main, 2)
+	if lp.length != 0.0 or Game.loops.has("roof"):
+		print("SCENARIO FAIL loop not cleared")
+		return
+	Game.rain_scale = 1.0
+	print("SCENARIO OK loop (%d notes replayed)" % played)

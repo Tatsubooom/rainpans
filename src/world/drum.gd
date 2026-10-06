@@ -17,7 +17,6 @@ var valid := true # placement preview validity
 var hovered := false
 var _ring := 0.0
 var _wobble := 0.0
-var _lit := 0.0
 var _hits_recent := 0.0
 var _notes: Array = [] # [x, y, age] little glyphs drifting up after a hit
 var tune := 0 # player's offset in scale steps (mouse wheel)
@@ -115,9 +114,9 @@ func try_catch(x: float, y0: float, y1: float, depth: float, vel: float) -> bool
 
 ## `by_hand`: struck by the player rather than the rain (always shows a
 ## note glyph, earns a little less so the rain stays the main source).
-func strike(vel: float, by_hand := false) -> void:
+func strike(vel: float, by_hand := false, always_sound := false) -> void:
 	var v := vel if by_hand else vel * randf_range(0.6, 1.0)
-	var played: bool = Synth.play(id, degree, global_position, v, get_instance_id(), by_hand)
+	var played: bool = Synth.play(id, degree, global_position, v, get_instance_id(), by_hand or always_sound)
 	_ring = 1.0
 	_wobble = 1.0
 	_hits_recent += 1.0

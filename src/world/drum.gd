@@ -117,11 +117,11 @@ func try_catch(x: float, y0: float, y1: float, depth: float, vel: float) -> bool
 ## note glyph, earns a little less so the rain stays the main source).
 func strike(vel: float, by_hand := false) -> void:
 	var v := vel if by_hand else vel * randf_range(0.6, 1.0)
-	var played: bool = Synth.play(id, degree, global_position, v, get_instance_id())
+	var played: bool = Synth.play(id, degree, global_position, v, get_instance_id(), by_hand)
 	_ring = 1.0
 	_wobble = 1.0
 	_hits_recent += 1.0
-	var amount: float = Game.earn(def.yield * (1.0 if played else 0.5) * (0.6 if by_hand else 1.0))
+	var amount: float = Game.earn(def.yield * (0.6 if by_hand else 1.0))
 	if played and (by_hand or randf() < 0.3) and _notes.size() < 3:
 		_notes.append([randf_range(-3.0, 3.0), -img.get_height() - 3.0, 0.0])
 	struck.emit(self, amount)

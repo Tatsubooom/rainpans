@@ -163,8 +163,26 @@ func _process(_delta: float) -> void:
 		_slots.clear()
 
 
-func play(id: String, degree: int, pos: Vector2, velocity: float, key: int) -> bool:
+## Keeps heavy rain from turning into a wash: past this many notes per second
+## further rain notes are thinned out at random (hand strikes always sound).
+const NOTE_BUDGET := 11
+var _recent := PackedInt64Array()
+
+
+func _over_budget(now: int) -> bool:
+	while not _recent.is_empty() and now - _recent[0] > 1000:
+		_recent.remove_at(0)
+	# Hard cap with a small leak, so a downpour still flickers with detail.
+	if _recent.size() >= NOTE_BUDGET and randf() > 0.08:
+		return true
+	_recent.append(now)
+	return false
+
+
+func play(id: String, degree: int, pos: Vector2, velocity: float, key: int, force := false) -> bool:
 	var now := Time.get_ticks_msec()
+	if not force and _over_budget(now):
+		return false
 	if Game.settings.get("quantize", false) and key >= 0:
 		# Hold the note until the next eighth; one note per drum per slot.
 		var slot := int(ceil(now / GRID_MS))

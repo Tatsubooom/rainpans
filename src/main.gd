@@ -17,6 +17,19 @@ func _ready() -> void:
 		Game.reset()
 	if _args.has("demo"):
 		_demo_state()
+	if _args.has("full"):
+		# Stress: fill the current area with a mix of every drum type.
+		var a: String = _args.get("area", "roof")
+		Game.owned = {}
+		for id in DrumDefs.ORDER:
+			Game.owned[id] = 4
+		var arr := []
+		var ids: Array = DrumDefs.ORDER
+		for i in Game.AREA_CAP[a]:
+			arr.append({"id": ids[i % ids.size()], "x": 16.0 + (i % 10) * 30.0, "y": 142.0 + (i / 10) * 9.0})
+		Game.placements = {a: arr}
+		Game.levels["rain"] = 10
+		Game.levels["drip"] = 6
 	if _args.has("area"):
 		Game.area = _args.area
 		if not Game.area in Game.areas_open:

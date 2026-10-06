@@ -352,23 +352,36 @@ func from_dict(d: Dictionary) -> void:
 			total_earned += offline_gain
 
 
+## Writes to a temp file first and swaps it in, keeping the previous save as
+## a backup, so a crash mid-write never loses progress.
 func save_game() -> void:
 	if _no_save:
 		return
-	var f := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
-	if f:
-		f.store_string(JSON.stringify(to_dict()))
+	var tmp := SAVE_PATH + ".tmp"
+	var f := FileAccess.open(tmp, FileAccess.WRITE)
+	if f == null:
+		return
+	f.store_string(JSON.stringify(to_dict()))
+	f.close()
+	var dir := DirAccess.open("user://")
+	if dir == null:
+		return
+	if FileAccess.file_exists(SAVE_PATH):
+		dir.rename(SAVE_PATH.get_file(), SAVE_PATH.get_file() + ".bak")
+	dir.rename(tmp.get_file(), SAVE_PATH.get_file())
 
 
 func load_game() -> void:
-	if not FileAccess.file_exists(SAVE_PATH):
-		return
-	var f := FileAccess.open(SAVE_PATH, FileAccess.READ)
-	if f == null:
-		return
-	var parsed = JSON.parse_string(f.get_as_text())
-	if parsed is Dictionary:
-		from_dict(parsed)
+	for path in [SAVE_PATH, SAVE_PATH + ".bak"]:
+		if not FileAccess.file_exists(path):
+			continue
+		var f := FileAccess.open(path, FileAccess.READ)
+		if f == null:
+			continue
+		var parsed = JSON.parse_string(f.get_as_text())
+		if parsed is Dictionary:
+			from_dict(parsed)
+			return
 
 
 func reset() -> void:

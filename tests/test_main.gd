@@ -23,6 +23,7 @@ func _ready() -> void:
 	_test_synth()
 	_test_capacity()
 	_test_journal()
+	_test_disk_save()
 	print("%d checks, %d failures" % [checks, failures])
 	get_tree().quit(1 if failures > 0 else 0)
 
@@ -140,3 +141,27 @@ func _test_journal() -> void:
 	Game.reset()
 	check(Journal.reached(0).is_empty(), "nothing reached at start")
 	check("first_hit" in Journal.reached(1), "first hit line")
+
+
+func _test_disk_save() -> void:
+	Game.reset()
+	Game._no_save = false
+	Game.resonance = 777.0
+	Game.save_game()
+	Game.resonance = 1.0
+	Game.save_game() # first save becomes the .bak
+	Game.resonance = 0.0
+	Game.load_game()
+	check(is_equal_approx(Game.resonance, 1.0), "loads latest save")
+	# Corrupt the main file: the backup must be used.
+	var f := FileAccess.open(Game.SAVE_PATH, FileAccess.WRITE)
+	f.store_string("{broken")
+	f.close()
+	Game.resonance = 0.0
+	Game.load_game()
+	check(is_equal_approx(Game.resonance, 777.0), "falls back to backup")
+	var dir := DirAccess.open("user://")
+	for name in [Game.SAVE_PATH.get_file(), Game.SAVE_PATH.get_file() + ".bak"]:
+		dir.remove(name)
+	Game._no_save = true
+	Game.reset()

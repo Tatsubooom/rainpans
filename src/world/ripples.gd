@@ -51,13 +51,18 @@ func _draw() -> void:
 		var near_lamp := Vector2(r[0], r[1]).distance_to(lamp) < 60.0
 		if near_lamp and t < 0.6:
 			col = Pal.LAMP2
-		# Pixel ellipse outline, sparse so it reads as a thin ring.
-		var steps := int(rx * 4.0)
-		for k in steps:
-			var a := TAU * k / steps
-			var px := Vector2(roundf(r[0] + cos(a) * rx), roundf(r[1] + sin(a) * ry))
-			if is_puddle(px):
-				draw_rect(Rect2(px, Vector2.ONE), col)
+		# Clean pixel ellipse: one point above and below per column; the
+		# front (lower) arc is brighter, the back arc fades sooner.
+		var irx := int(rx)
+		for dx in range(-irx, irx + 1):
+			var f := 1.0 - pow(dx / rx, 2.0)
+			var dy := roundf(ry * sqrt(maxf(0.0, f)))
+			var top := Vector2(r[0] + dx, r[1] - dy)
+			var bot := Vector2(r[0] + dx, r[1] + dy)
+			if t < 0.7 and is_puddle(top):
+				draw_rect(Rect2(top, Vector2.ONE), col)
+			if dy > 0.0 and is_puddle(bot):
+				draw_rect(Rect2(bot, Vector2.ONE), col)
 	# Lamp glints on puddle surfaces, slowly shimmering.
 	for pr in puddles:
 		var rect: Rect2 = pr

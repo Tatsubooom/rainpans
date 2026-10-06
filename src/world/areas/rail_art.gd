@@ -28,6 +28,7 @@ static func build() -> Dictionary:
 		"smoke": [Vector2(286, 92), Vector2(40, 98)],
 		"floor_y": FLOOR_TOP,
 		"ambient": Color(0.9, 0.96, 1.0),
+		"bed": "wind",
 		"reverb_room": 0.86,
 		"windows": [Vector2(222, 112), Vector2(250, 112), Vector2(278, 112)],
 	}

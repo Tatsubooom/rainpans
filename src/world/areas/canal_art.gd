@@ -35,6 +35,7 @@ static func build() -> Dictionary:
 		"smoke_steam": true,
 		"floor_y": FLOOR_TOP,
 		"ambient": Color(0.82, 0.86, 0.96),
+		"bed": "water",
 		"reverb_room": 0.97,
 		"shaft": Rect2(HOLE_X0, 0, HOLE_X1 - HOLE_X0, 160),
 		"water_y": 167,

@@ -19,6 +19,7 @@ var _ring := 0.0
 var _wobble := 0.0
 var _lit := 0.0
 var _hits_recent := 0.0
+var _notes: Array = [] # [x, y, age] little glyphs drifting up after a hit
 var shadow_len := 0.0 # cast away from the lamp along the floor
 var shadow_dir := 1.0
 
@@ -119,6 +120,8 @@ func strike(vel: float) -> void:
 	_wobble = 1.0
 	_hits_recent += 1.0
 	var amount: float = Game.earn(def.yield * (1.0 if played else 0.5))
+	if played and randf() < 0.3 and _notes.size() < 3:
+		_notes.append([randf_range(-3.0, 3.0), -img.get_height() - 3.0, 0.0])
 	struck.emit(self, amount)
 
 
@@ -126,6 +129,16 @@ func _process(delta: float) -> void:
 	_ring = maxf(0.0, _ring - delta * 3.0)
 	_wobble = maxf(0.0, _wobble - delta * 8.0)
 	_hits_recent = maxf(0.0, _hits_recent - delta * 0.8)
+	var i := 0
+	while i < _notes.size():
+		var n: Array = _notes[i]
+		n[2] += delta
+		n[1] -= delta * 7.0
+		n[0] += sin(n[2] * 3.0) * delta * 3.0
+		if n[2] > 1.6:
+			_notes.remove_at(i)
+		else:
+			i += 1
 	queue_redraw()
 
 
@@ -166,6 +179,15 @@ func _draw() -> void:
 						n = true
 				if n:
 					draw_rect(Rect2(tl + Vector2(x, y), Vector2.ONE), Pal.LAMP1)
+	for n in _notes:
+		# A three-pixel note: head and stem, fading through the palette.
+		var age: float = n[2]
+		if age > 1.2 and int(age * 12.0) % 2 == 0:
+			continue
+		var col := Pal.LAMP1 if age < 0.4 else (Pal.RAIN if age < 0.9 else Pal.FOG1)
+		var p := Vector2(floorf(n[0]), floorf(n[1]))
+		draw_rect(Rect2(p, Vector2(2, 1)), col)
+		draw_rect(Rect2(p + Vector2(1, -3), Vector2(1, 3)), col)
 	if _ring > 0.0 and not ghost:
 		# A small ring of sound: two pixels flaring out above the lid.
 		var lid: Array = def.lid

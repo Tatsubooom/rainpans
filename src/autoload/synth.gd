@@ -15,6 +15,8 @@ var _last_hit := {} # drum instance id -> msec, to thin out machine-gun hits
 var rain_bed: AudioStreamPlayer
 var rain_patter: AudioStreamPlayer
 var room_tone: AudioStreamPlayer
+var area_bed: AudioStreamPlayer
+var _area_beds := {}
 
 
 func _ready() -> void:
@@ -30,6 +32,8 @@ func _ready() -> void:
 	rain_bed = _loop_player(_make_rain_loop(4.0, 0.0), "Ambience", -14.0)
 	rain_patter = _loop_player(_make_rain_loop(3.0, 1.0), "Ambience", -40.0)
 	room_tone = _loop_player(_make_room_tone(6.0), "Ambience", -38.0)
+	area_bed = _loop_player(null, "Ambience", -18.0)
+	area_bed.autoplay = false
 
 
 func _setup_buses() -> void:
@@ -91,9 +95,21 @@ func _loop_player(stream: AudioStream, bus: String, db: float) -> AudioStreamPla
 	p.stream = stream
 	p.bus = bus
 	p.volume_db = db
-	p.autoplay = true
+	p.autoplay = stream != null
 	add_child(p)
 	return p
+
+
+## Per-area background: "water" (canal flow), "wind" (open viaduct) or "".
+func set_area_bed(kind: String) -> void:
+	if kind == "":
+		area_bed.stop()
+		return
+	if not _area_beds.has(kind):
+		_area_beds[kind] = _make_water_loop(6.0) if kind == "water" else _make_wind_loop(8.0)
+	area_bed.stream = _area_beds[kind]
+	area_bed.volume_db = -16.0 if kind == "water" else -22.0
+	area_bed.play()
 
 
 ## Rain intensity 0..1 drives the ambience mix.
@@ -289,6 +305,59 @@ func _make_room_tone(seconds: float) -> AudioStreamWAV:
 		# Whole cycles over the loop length keep it seamless.
 		var swell := 0.6 + 0.4 * sin(TAU * t / seconds)
 		buf[i] = lp2 * swell + sin(TAU * 73.42 * t) * 0.02 * swell
+	var peak := 0.0001
+	for v in buf:
+		peak = maxf(peak, absf(v))
+	return _to_wav(buf, 0.6 / peak, true)
+
+
+## Slow water: low rumble plus sparse bubbling plops, seamless.
+func _make_water_loop(seconds: float) -> AudioStreamWAV:
+	var n := int(seconds * RATE)
+	var buf := PackedFloat32Array()
+	buf.resize(n)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 41
+	var lp := 0.0
+	var lp2 := 0.0
+	for i in n:
+		lp += (rng.randf_range(-1.0, 1.0) - lp) * 0.08
+		lp2 += (lp - lp2) * 0.12
+		var t := float(i) / RATE
+		buf[i] = lp2 * (0.7 + 0.3 * sin(TAU * t / seconds * 2.0))
+	# Bubbles: short upward chirps, placed away from the loop seam.
+	for b in 26:
+		var start := rng.randi_range(int(0.1 * RATE), n - int(0.3 * RATE))
+		var f0 := rng.randf_range(300.0, 900.0)
+		var dur := rng.randf_range(0.03, 0.08)
+		var amp := rng.randf_range(0.1, 0.35)
+		var ph := 0.0
+		for k in int(dur * RATE):
+			var tt := float(k) / RATE
+			ph += TAU * f0 * (1.0 + tt / dur * 0.8) / RATE
+			buf[start + k] += sin(ph) * amp * exp(-tt / dur * 3.0)
+	var peak := 0.0001
+	for v in buf:
+		peak = maxf(peak, absf(v))
+	return _to_wav(buf, 0.6 / peak, true)
+
+
+## Wind across open concrete: band-limited noise with slow gusts.
+func _make_wind_loop(seconds: float) -> AudioStreamWAV:
+	var n := int(seconds * RATE)
+	var buf := PackedFloat32Array()
+	buf.resize(n)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 57
+	var lp := 0.0
+	var bp := 0.0
+	for i in n:
+		var t := float(i) / RATE
+		var white := rng.randf_range(-1.0, 1.0)
+		lp += (white - lp) * 0.05
+		bp += (lp - bp) * 0.02
+		var gust := 0.45 + 0.35 * sin(TAU * t / seconds) + 0.2 * sin(TAU * t * 3.0 / seconds)
+		buf[i] = (lp - bp) * gust
 	var peak := 0.0001
 	for v in buf:
 		peak = maxf(peak, absf(v))

@@ -187,6 +187,7 @@ func apply_upgrades() -> void:
 	lamp_light.energy = lamp_energy()
 	lamp_light.texture_scale = 1.0 + 0.15 * Game.level("lamp")
 	Synth.set_rain_level(Game.rain_level())
+	Synth.set_area_bed(area.get("bed", ""))
 	Synth.set_reverb_wet(0.28 + 0.06 * Game.level("reverb"), minf(0.98, float(area.get("reverb_room", 0.78)) + 0.03 * Game.level("reverb")))
 
 

@@ -269,7 +269,9 @@ func _spawn_drum(entry: Dictionary) -> Drum:
 
 
 func _relight(d: Drum) -> void:
-	d.relight(area.lamp, 180.0 + 24.0 * Game.level("lamp"), area.lamp_color)
+	var f: Rect2 = area.floor
+	var far := clampf((f.end.y - d.position.y) / maxf(1.0, f.size.y), 0.0, 1.0)
+	d.relight(area.lamp, 180.0 + 24.0 * Game.level("lamp"), area.lamp_color, far)
 
 
 func drum_for_entry(entry: Dictionary) -> Drum:

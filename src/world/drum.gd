@@ -26,6 +26,7 @@ var shadow_dir := 1.0
 ## Catching mouth in local sprite px (from the def, scaled to world px).
 var lid0 := 0
 var lid1 := 0
+var _refl: ImageTexture
 
 
 func setup(drum_id: String) -> void:
@@ -42,39 +43,110 @@ func setup(drum_id: String) -> void:
 	tex = ImageTexture.create_from_image(img)
 
 
-## Bakes a warm rim on the edges that face the lamp, stronger when close.
-func relight(lamp: Vector2, radius: float, color: Color) -> void:
+## Bakes the drum into the scene: a warm rim on the edges that face the
+## lamp, selective outlines (the hard ink line is kept only along the base
+## and the side turned away from the light), the same wet air the background
+## sits in (stronger for drums further back), and darker, damper bases.
+## `far` is 0 at the front of the floor band and 1 at the back.
+func relight(lamp: Vector2, radius: float, color: Color, far := 0.0) -> void:
 	var lit := img.duplicate() as Image
 	var tl := top_left()
 	var w := img.get_width()
 	var h := img.get_height()
+	var away := -1 if lamp.x > position.x else 1
+	var haze := 0.1 + 0.14 * far
+	var ao_rows := clampi(h / 4, 3, 9)
 	for y in h:
 		for x in w:
 			var c := img.get_pixel(x, y)
-			if c.a == 0.0 or c == Pal.INK:
+			if c.a == 0.0:
 				continue
+			if c == Pal.INK:
+				lit.set_pixel(x, y, _outline(x, y, w, h, away))
+				continue
+			# Muted toward the night air, a touch less saturated.
+			c = c.lerp(Pal.NIGHT3, haze)
+			c = Color.from_hsv(c.h, c.s * 0.88, c.v, c.a)
+			var from_base := h - 1 - y
+			if from_base < ao_rows:
+				# Ground contact: the last rows sink into the wet floor.
+				var t := 1.0 - float(from_base) / ao_rows
+				var band := 0.36 if t > 0.66 else (0.22 if t > 0.33 else 0.1)
+				c = c.lerp(Pal.NIGHT0, band)
 			var wp := tl + Vector2(x + 0.5, y + 0.5)
 			var to := lamp - wp
 			var dist := to.length()
-			if dist > radius:
-				continue
-			var k := 1.0 - dist / radius
-			var dir := to / maxf(dist, 0.001)
-			var nx := x + int(roundf(dir.x))
-			var ny := y + int(roundf(dir.y))
-			var open := nx < 0 or ny < 0 or nx >= w or ny >= h
-			if not open:
-				var n := img.get_pixel(nx, ny)
-				open = n.a == 0.0 or n == Pal.INK
-			if open:
-				# Facing the lamp: banded rim highlight.
-				var band := 2 if k > 0.6 else (1 if k > 0.3 else 0)
-				var rim: Color = [Pal.LAMP3, Pal.LAMP2, Pal.LAMP1][band]
-				lit.set_pixel(x, y, c.lerp(rim, 0.45 + 0.4 * k))
+			if dist <= radius:
+				var k := 1.0 - dist / radius
+				var dir := to / maxf(dist, 0.001)
+				var nx := x + int(roundf(dir.x))
+				var ny := y + int(roundf(dir.y))
+				var open := nx < 0 or ny < 0 or nx >= w or ny >= h
+				if not open:
+					var n := img.get_pixel(nx, ny)
+					open = n.a == 0.0 or n == Pal.INK
+				if open:
+					# Facing the lamp: banded rim highlight.
+					var band := 2 if k > 0.6 else (1 if k > 0.3 else 0)
+					var rim: Color = [Pal.LAMP3, Pal.LAMP2, Pal.LAMP1][band]
+					c = c.lerp(rim, 0.45 + 0.4 * k)
+			lit.set_pixel(x, y, c)
 	tex = ImageTexture.create_from_image(lit)
+	_bake_reflection(lit)
 	var d := position.distance_to(lamp)
 	shadow_len = floorf(clampf((1.0 - d / (radius * 1.3)) * 28.0, 0.0, 24.0))
 	shadow_dir = 1.0 if position.x >= lamp.x else -1.0
+
+
+## Outline pixel colour: ink at the base and on the shadow side, otherwise a
+## deep shade of the surface it borders, so the silhouette reads without a
+## cut-out line around it.
+func _outline(x: int, y: int, w: int, h: int, away: int) -> Color:
+	if y >= h - 2:
+		return Pal.INK
+	var inner := Color(0, 0, 0, 0)
+	for o in [Vector2i(0, 1), Vector2i(-away, 0), Vector2i(away, 0), Vector2i(0, -1)]:
+		var q: Vector2i = Vector2i(x, y) + o
+		if q.x < 0 or q.y < 0 or q.x >= w or q.y >= h:
+			continue
+		var n := img.get_pixelv(q)
+		if n.a > 0.0 and n != Pal.INK:
+			inner = n
+			break
+	if inner.a == 0.0:
+		return Pal.INK
+	# Is this the side turned away from the light? Then keep it dark.
+	var side := x + away
+	var outer_open := side < 0 or side >= w or img.get_pixel(side, y).a == 0.0
+	var deep := inner.lerp(Pal.NIGHT0, 0.72)
+	if outer_open and away != 0 and _is_far_side(x, w, away):
+		return Pal.INK.lerp(deep, 0.35)
+	return deep
+
+
+func _is_far_side(x: int, w: int, away: int) -> bool:
+	return x >= w / 2 if away > 0 else x < w / 2
+
+
+## A dim, broken reflection of the drum on the wet floor below it.
+func _bake_reflection(src: Image) -> void:
+	var w := src.get_width()
+	var h := src.get_height()
+	var rh := mini(h, maxi(6, h * 2 / 3))
+	var r := Image.create(w, rh, false, Image.FORMAT_RGBA8)
+	r.fill(Color(0, 0, 0, 0))
+	for y in rh:
+		var t := float(y) / rh
+		for x in w:
+			var c := src.get_pixel(x, h - 1 - y)
+			if c.a == 0.0:
+				continue
+			# Fade out down the reflection with an ordered dither, and
+			# break every third row as if the water were ruffled.
+			if (1.0 - t) * 0.95 < PixCanvas.bayer(x, y) or y % 3 == 2:
+				continue
+			r.set_pixel(x, y, Color(c.lerp(Pal.NIGHT1, 0.55 + 0.3 * t), 0.55))
+	_refl = ImageTexture.create_from_image(r)
 
 
 func size() -> Vector2i:
@@ -159,6 +231,8 @@ func _draw() -> void:
 	var h := img.get_height()
 	if not ghost:
 		# Contact shadow and a wet dark ring on the floor.
+		if _refl:
+			draw_texture(_refl, Vector2(tl.x, 0))
 		var sw := w + 4
 		for x in range(-sw / 2, sw / 2 + 1):
 			var edge := absf(x) > sw / 2 - 4

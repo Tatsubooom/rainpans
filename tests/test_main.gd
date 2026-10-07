@@ -22,6 +22,7 @@ func _ready() -> void:
 	_test_catch()
 	_test_synth()
 	_test_capacity()
+	_test_musicality()
 	_test_journal()
 	_test_disk_save()
 	_test_distant()
@@ -113,12 +114,23 @@ func _test_catch() -> void:
 func _test_synth() -> void:
 	for id in DrumDefs.ORDER:
 		check(Synth.sample(id, true) != Synth.sample(id), "soft take differs: " + id)
+		check(Synth.sample(id, false, 0) != Synth.sample(id, false, 2), "raw take differs: " + id)
 		var s := Synth.sample(id)
 		check(s.data.size() > 2000, "sample has data: " + id)
 		var peak := 0
 		for i in range(0, mini(s.data.size(), 20000), 2):
 			peak = maxi(peak, absi(s.data.decode_s16(i)))
 		check(peak > 8000, "sample is audible: %s (%d)" % [id, peak])
+
+
+func _test_musicality() -> void:
+	Game.reset()
+	check(Game.musicality() == 0, "starts as plain rain")
+	Game.owned = {"can": 1, "bucket": 1, "helmet": 1}
+	check(Game.musicality() == 1, "three kinds: in between")
+	Game.owned = {"can": 1, "bucket": 1, "helmet": 1, "pot": 1, "bottle": 1, "drum": 1}
+	check(Game.musicality() == 2, "six kinds: music")
+	Game.reset()
 
 
 func _test_capacity() -> void:

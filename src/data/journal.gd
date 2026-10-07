@@ -11,6 +11,7 @@ const ENTRIES := [
 	["hand", "指で弾くと、缶は少し驚いたように鳴った。"],
 	["loop", "自分で鳴らした音が、雨にまじって何度も帰ってくる。"],
 	["harmony3", "三つの音が重なると、それはもう音楽だった。"],
+	["song", "いつのまにか、雨の音が歌になっていた。"],
 	["pot", "鍋は、湯気よりも雨のほうが似合うのかもしれない。"],
 	["night", "夜が深くなると、雨の音が近くなる。"],
 	["bottle", "瓶の口に雨が当たると、遠くで鈴が鳴ったように聞こえた。"],
@@ -56,6 +57,8 @@ static func reached(hits: int) -> Array:
 		out.append("loop")
 	if g.distinct_placed() >= 3:
 		out.append("harmony3")
+	if g.musicality() >= 2:
+		out.append("song")
 	if g.level("rain") >= 5:
 		out.append("rain5")
 	if g.area_full():

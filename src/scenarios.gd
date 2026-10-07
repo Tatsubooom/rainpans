@@ -19,6 +19,11 @@ static func run(main: Node, name: String) -> void:
 			await _loop(main)
 		"swap":
 			await _swap(main)
+		"tiers":
+			for t in 3:
+				for id in ["can", "bucket", "drum"]:
+					Synth.sample(id, false, t).save_to_wav("res://shots/%s_t%d.wav" % [id, t])
+			print("SCENARIO OK tiers")
 		_:
 			print("SCENARIO FAIL unknown ", name)
 	main.get_tree().quit()

@@ -139,6 +139,16 @@ func earn(base: float) -> float:
 	return v
 
 
+## 0..2: how musical the drops sound, growing with the kinds of rain
+## drums you have found (see Synth.sample).
+func musicality() -> int:
+	var kinds := 0
+	for id in owned:
+		if owned[id] > 0:
+			kinds += 1
+	return 0 if kinds < 3 else (1 if kinds < 6 else 2)
+
+
 func level(id: String) -> int:
 	return levels.get(id, 0)
 
@@ -196,6 +206,9 @@ func buy_drum(id: String) -> bool:
 	owned[id] = owned.get(id, 0) + 1
 	if first:
 		unlocked.emit("drum:" + id)
+		var synth := get_node_or_null("/root/Synth")
+		if synth:
+			synth.refresh_tier()
 	changed.emit()
 	return true
 

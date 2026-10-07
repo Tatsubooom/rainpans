@@ -117,6 +117,42 @@ static func mist_texture(w: int, h: int, seed: int, color: Color, density: float
 
 
 ## Thunder: a long, low, rolling rumble.
+## A close strike: a tearing crack of bright noise, then a heavy roll.
+static func crack_wav() -> AudioStreamWAV:
+	var rate := 22050
+	var n := int(rate * 4.5)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 11
+	var buf := PackedFloat32Array()
+	buf.resize(n)
+	var lp := 0.0
+	var lp2 := 0.0
+	var hp_prev := 0.0
+	var peak := 0.0001
+	for i in n:
+		var t := float(i) / rate
+		var w := rng.randf_range(-1.0, 1.0)
+		# Crack: raw noise, chopped into a few fast bursts.
+		var chop := 1.0 if sin(t * 90.0 + sin(t * 37.0) * 3.0) > -0.3 else 0.35
+		var crack := (w - hp_prev) * exp(-t * 9.0) * chop * 0.8
+		hp_prev = w
+		# Roll: deep filtered noise swelling in just after.
+		lp += (w - lp) * 0.05
+		lp2 += (lp - lp2) * 0.05
+		var roll := lp2 * 6.0 * minf(1.0, t * 6.0) * exp(-t * 0.8) * (0.75 + 0.25 * sin(t * 4.1))
+		buf[i] = crack + roll
+		peak = maxf(peak, absf(buf[i]))
+	var bytes := PackedByteArray()
+	bytes.resize(n * 2)
+	for i in n:
+		bytes.encode_s16(i * 2, int(clampf(buf[i] / peak * 0.95, -1.0, 1.0) * 32767.0))
+	var wav := AudioStreamWAV.new()
+	wav.format = AudioStreamWAV.FORMAT_16_BITS
+	wav.mix_rate = rate
+	wav.data = bytes
+	return wav
+
+
 static func thunder_wav() -> AudioStreamWAV:
 	var rate := 22050
 	var n := int(rate * 5.0)

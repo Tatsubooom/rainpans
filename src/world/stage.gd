@@ -6,6 +6,8 @@ extends Node2D
 signal drum_struck(drum: Drum, amount: float)
 signal hover_changed(text: String)
 signal hand_strike(drum: Drum, vel: float)
+## A quiet line for the info bar when something happens (visitors, strikes).
+signal event_note(text: String)
 
 var area_id := "roof"
 var area: Dictionary
@@ -27,6 +29,11 @@ var horizon: Sprite2D
 var mist: Array[Sprite2D] = []
 var fog_banks: Array[Sprite2D] = []
 var thunder: AudioStreamPlayer
+var crack: AudioStreamPlayer
+var bolt: Bolt
+var visitors: Visitors
+var _strike_k := 0.0 # close-strike flash, 1 -> 0
+var _next_strike := 300.0
 
 ## set by HUD: rectangles (in viewport px) where dropping returns to shelf
 var shelf_rect := Rect2()
@@ -78,6 +85,13 @@ func build(id: String) -> void:
 	wanderer = Wanderer.new()
 	add_child(wanderer)
 	wanderer.setup(area)
+	bolt = Bolt.new()
+	bolt.visible = false
+	var bmat := CanvasItemMaterial.new()
+	bmat.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
+	bmat.light_mode = CanvasItemMaterial.LIGHT_MODE_UNSHADED
+	bolt.material = bmat
+	add_child(bolt)
 	smoke = Smoke.new()
 	smoke.steam = area.get("smoke_steam", false)
 	add_child(smoke)
@@ -201,12 +215,47 @@ func build(id: String) -> void:
 	thunder.bus = "Ambience"
 	thunder.volume_db = -10.0
 	add_child(thunder)
+	crack = AudioStreamPlayer.new()
+	crack.stream = EnvFx.crack_wav()
+	crack.bus = "Ambience"
+	crack.volume_db = -4.0
+	add_child(crack)
+	visitors = Visitors.new()
+	add_child(visitors)
+	visitors.setup(self, area, id)
+	visitors.note.connect(func(t: String): event_note.emit(t))
 
 	_flicker.seed = 4
 	_flicker.frequency = 1.3
 	for e in Game.placed_in_area():
 		_spawn_drum(e)
 	apply_upgrades()
+
+
+## A close strike: bolt, white-out, an immediate crack of thunder, and every
+## drum on the floor rings with it. Pays a little bonus for the chord.
+func strike_lightning() -> void:
+	_next_strike = randf_range(240.0, 600.0)
+	_strike_k = 1.0
+	bolt.strike(randf_range(60.0, AreaLibrary.W - 60.0), float(area.floor_y) - 24.0)
+	crack.play()
+	var total := 0.0
+	var i := 0
+	for d in rain.drums:
+		var dr: Drum = d
+		if dr.ghost:
+			continue
+		total += float(dr.def.yield)
+		var loud := i < 8
+		i += 1
+		get_tree().create_timer(0.12 + randf() * 0.35).timeout.connect(func():
+			if is_instance_valid(dr):
+				dr.strike(randf_range(0.6, 1.0), false, loud))
+	if total > 0.0:
+		var bonus := Game.earn(total * 15.0)
+		event_note.emit("雷が落ちた。器がいっせいに鳴った　+%s" % Game.fmt(bonus))
+	else:
+		event_note.emit("近くに雷が落ちた")
 
 
 func _layer(img: Image) -> Sprite2D:
@@ -633,6 +682,11 @@ func _process(delta: float) -> void:
 			get_tree().create_timer(randf_range(1.2, 3.0)).timeout.connect(func():
 				if is_instance_valid(thunder):
 					thunder.play())
+	# Now and then, in a storm, a strike lands close by.
+	if _storm_k > 0.5 or Game.rain_level() > 0.85:
+		_next_strike -= delta * (1.0 + _storm_k)
+		if _next_strike <= 0.0:
+			strike_lightning()
 	var flash_on := false
 	if _flash > 0.0:
 		_flash = maxf(0.0, _flash - delta * 2.5)
@@ -640,5 +694,12 @@ func _process(delta: float) -> void:
 	# Mist lifts and greys the darks a little; storms deepen them.
 	amb = amb.lerp(Color(1.05, 1.08, 1.12), _mist_k * 0.25).lerp(Color(0.8, 0.84, 0.95), _storm_k * 0.3)
 	modulate_node.color = amb.lerp(Color(1.25, 1.3, 1.45), 0.5 if flash_on else 0.0)
-	rain.flash = 0.6 if flash_on else 0.0
+	var strike_on := false
+	if _strike_k > 0.0:
+		_strike_k = maxf(0.0, _strike_k - delta * 1.6)
+		# Two hard pulses, then a white-blue afterglow sinking back.
+		strike_on = _strike_k > 0.9 or (_strike_k > 0.7 and _strike_k < 0.8)
+		var glow := 1.0 if strike_on else _strike_k * 0.5
+		modulate_node.color = modulate_node.color.lerp(Color(1.7, 1.75, 1.95), glow)
+	rain.flash = 1.0 if strike_on else (0.6 if flash_on else 0.0)
 	rain_far.flash = rain.flash

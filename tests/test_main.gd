@@ -26,6 +26,7 @@ func _ready() -> void:
 	_test_journal()
 	_test_disk_save()
 	_test_distant()
+	_test_visitors()
 	print("%d checks, %d failures" % [checks, failures])
 	get_tree().quit(1 if failures > 0 else 0)
 
@@ -187,3 +188,17 @@ func _test_distant() -> void:
 		for i in range(0, wav.data.size(), 2):
 			peak = maxi(peak, absi(wav.data.decode_s16(i)))
 		check(wav.data.size() > 20000 and peak > 10000, "distant sound audible: " + kind)
+
+
+func _test_visitors() -> void:
+	# Every frame grid is well formed, and Scale2x doubles exactly.
+	for src in [Visitor.CAT, Visitor.ROBOT, Visitor.HERON, Visitor.DEER]:
+		for f in src:
+			var img := PixCanvas.grid(src[f], {"o": Pal.INK})
+			var big := PixCanvas.scale2x(img)
+			check(big.get_width() == img.get_width() * 2 and big.get_height() == img.get_height() * 2, "scale2x size " + f)
+	for area in Visitors.KINDS:
+		for k in Visitors.KINDS[area]:
+			check(Visitors.ARRIVE.has(k) and Visitor.SPEED.has(k), "visitor known: " + k)
+	var wav := EnvFx.crack_wav()
+	check(wav.data.size() > 50000, "thunder crack generated")

@@ -273,3 +273,35 @@ static func grid(rows: Array, key: Dictionary) -> Image:
 			if key.has(ch):
 				out.set_pixel(x, y, key[ch])
 	return out
+
+
+## Scale2x / EPX: doubles a sprite, rounding off stair-steps instead of
+## copying blocks, so small sprites can match the 2x scenery.
+static func scale2x(src: Image) -> Image:
+	var w := src.get_width()
+	var h := src.get_height()
+	var out := Image.create(w * 2, h * 2, false, Image.FORMAT_RGBA8)
+	for y in h:
+		for x in w:
+			var p := src.get_pixel(x, y)
+			var a := src.get_pixel(x, y - 1) if y > 0 else p
+			var b := src.get_pixel(x + 1, y) if x < w - 1 else p
+			var c := src.get_pixel(x - 1, y) if x > 0 else p
+			var d := src.get_pixel(x, y + 1) if y < h - 1 else p
+			var e0 := p
+			var e1 := p
+			var e2 := p
+			var e3 := p
+			if c == a and c != d and a != b:
+				e0 = a
+			if a == b and a != c and b != d:
+				e1 = b
+			if d == c and d != b and c != a:
+				e2 = c
+			if b == d and b != a and d != c:
+				e3 = d
+			out.set_pixel(x * 2, y * 2, e0)
+			out.set_pixel(x * 2 + 1, y * 2, e1)
+			out.set_pixel(x * 2, y * 2 + 1, e2)
+			out.set_pixel(x * 2 + 1, y * 2 + 1, e3)
+	return out

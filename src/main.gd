@@ -47,6 +47,7 @@ func _ready() -> void:
 	hud.drag_requested.connect(stage.begin_shelf_drag)
 	hud.travel.connect(_travel)
 	stage.drum_struck.connect(_on_struck)
+	stage.event_note.connect(hud.journal_line)
 	looper = Looper.new()
 	looper.stage = stage
 	add_child(looper)
@@ -67,6 +68,10 @@ func _ready() -> void:
 		stage.force_weather(_args.weather)
 	if _args.has("wanderer"):
 		stage.wanderer.force()
+	if _args.has("visitor"):
+		stage.visitors.spawn(_args.visitor, true)
+	if _args.has("strike"):
+		stage.strike_lightning()
 	if _args.has("crow"):
 		stage.critters.debug_sit()
 	if _args.has("settings"):

@@ -5,6 +5,10 @@ extends Node2D
 var puddles: Array = []
 var lamp := Vector2(-999, -999)
 var _rings: Array = [] # [x, y, age, life, big]
+## Classic pixel splash crowns where drops hit dry floor (4 phases):
+## a 2px dash, a 4px ring, two flying dots, gone.
+var _crowns: Array = [] # [x, y, age, lit]
+const CROWN_LIFE := 0.2
 var _shimmer := 0.0
 
 
@@ -30,8 +34,20 @@ func add(p: Vector2, big := false) -> void:
 	_rings.append([floorf(p.x), floorf(p.y), 0.0, 0.9 if big else 0.55, big])
 
 
+func crown(p: Vector2, lit: bool) -> void:
+	if _crowns.size() < 120:
+		_crowns.append([floorf(p.x), floorf(p.y), 0.0, lit])
+
+
 func _process(delta: float) -> void:
 	_shimmer += delta
+	var c := 0
+	while c < _crowns.size():
+		_crowns[c][2] += delta
+		if _crowns[c][2] >= CROWN_LIFE:
+			_crowns.remove_at(c)
+		else:
+			c += 1
 	var i := 0
 	while i < _rings.size():
 		_rings[i][2] += delta
@@ -43,6 +59,22 @@ func _process(delta: float) -> void:
 
 
 func _draw() -> void:
+	for cr in _crowns:
+		var phase := int(cr[2] / CROWN_LIFE * 4.0)
+		var x: float = cr[0]
+		var y: float = cr[1]
+		var col := Pal.LAMP2 if cr[3] else Pal.RAIN
+		var hi := Pal.LAMP1 if cr[3] else Pal.RAIN_HI
+		match phase:
+			0:
+				draw_rect(Rect2(x - 1, y, 2, 1), hi)
+			1:
+				draw_rect(Rect2(x - 2, y, 1, 1), col)
+				draw_rect(Rect2(x + 1, y, 1, 1), col)
+				draw_rect(Rect2(x - 1, y - 1, 2, 1), hi)
+			2:
+				draw_rect(Rect2(x - 3, y - 2, 1, 1), col)
+				draw_rect(Rect2(x + 2, y - 2, 1, 1), col)
 	for r in _rings:
 		var t: float = r[2] / r[3]
 		var rx: float = (4.0 + t * (18.0 if r[4] else 12.0))

@@ -162,7 +162,10 @@ func _process(delta: float) -> void:
 				if in_puddle:
 					ripples.add(p, is_drip)
 				else:
-					_splash(p, 1 if _rng.randf() < 0.6 else 2, 0.6)
+					if ripples != null and _rng.randf() < 0.7:
+						ripples.crown(p, _lit(p) > 0.0)
+					else:
+						_splash(p, 1, 0.5)
 				landed.emit(p, in_puddle)
 				dead = true
 		elif y1 >= _depth[i]:

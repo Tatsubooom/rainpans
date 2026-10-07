@@ -61,6 +61,11 @@ const CROW_FLY_B := [
 var lamp := Vector2(-999, -999)
 var perches: Array = []
 var _moths: Array = [] # [angle, radius, speed, phase]
+## Fireflies (areas with "fireflies": n inside "firefly_rect") and dust motes
+## drifting through the lamplight.
+var _flies: Array = [] # [pos, vel, phase]
+var _fly_rect := Rect2()
+var _motes: Array = [] # [offset, vel, phase]
 var _crow_state := "away" # away, in, sit, out
 var _crow_pos := Vector2.ZERO
 var _crow_target := Vector2.ZERO
@@ -76,6 +81,14 @@ func setup(a: Dictionary) -> void:
 	lamp = a.lamp
 	perches = a.get("perches", [])
 	_moths.clear()
+	_flies.clear()
+	_motes.clear()
+	_fly_rect = a.get("firefly_rect", Rect2())
+	for i in int(a.get("fireflies", 0)):
+		var p := _fly_rect.position + Vector2(randf() * _fly_rect.size.x, randf() * _fly_rect.size.y)
+		_flies.append([p, Vector2(randf_range(-6, 6), randf_range(-4, 4)), randf() * TAU])
+	for i in 16:
+		_motes.append([Vector2(randf_range(-60, 60), randf_range(-40, 50)), Vector2(randf_range(-3, 3), randf_range(1, 5)), randf() * TAU])
 	for i in 3:
 		_moths.append([randf() * TAU, randf_range(10.0, 22.0), randf_range(1.5, 3.2), randf() * 10.0])
 	var key := {"o": Pal.INK, "x": Pal.FOG2, "b": Pal.CON4, "1": Pal.NIGHT3, "2": Pal.FOG0, "f": Pal.CON3}
@@ -87,6 +100,17 @@ func setup(a: Dictionary) -> void:
 
 func _process(delta: float) -> void:
 	_t += delta
+	for f in _flies:
+		# Lazy wandering: steer randomly, stay inside the planted area.
+		f[1] += Vector2(randf_range(-20, 20), randf_range(-16, 16)) * delta
+		f[1] = (f[1] as Vector2).limit_length(9.0)
+		f[0] += f[1] * delta
+		if not _fly_rect.has_point(f[0]):
+			f[1] = ((_fly_rect.get_center() - f[0]) as Vector2).normalized() * 6.0
+	for m in _motes:
+		m[0] += m[1] * delta
+		if (m[0] as Vector2).y > 56.0 or absf(m[0].x) > 66.0:
+			m[0] = Vector2(randf_range(-60, 60), -40.0)
 	_crow_step(delta)
 	queue_redraw()
 
@@ -127,6 +151,28 @@ func _crow_step(delta: float) -> void:
 
 
 func _draw() -> void:
+	# Fireflies: slow green-gold blinks with a soft cross of glow.
+	for f in _flies:
+		var lit := 0.5 + 0.5 * sin(_t * 1.6 + f[2])
+		if lit < 0.35:
+			continue
+		var p := (f[0] as Vector2).floor()
+		var col := Color("d8f58a") if lit > 0.75 else Color("8fbf5a")
+		draw_rect(Rect2(p, Vector2.ONE), col)
+		if lit > 0.7:
+			for o in [Vector2(1, 0), Vector2(-1, 0), Vector2(0, 1), Vector2(0, -1)]:
+				draw_rect(Rect2(p + o, Vector2.ONE), Color(col, 0.35))
+	# Dust and spray hanging in the lamplight, only visible where it is lit.
+	for m in _motes:
+		var off: Vector2 = m[0]
+		var d := off.length() / 70.0
+		if d > 1.0:
+			continue
+		var tw := 0.5 + 0.5 * sin(_t * 3.0 + m[2])
+		if tw < 0.3:
+			continue
+		var c := Pal.LAMP1 if d < 0.45 else Pal.LAMP3
+		draw_rect(Rect2((lamp + off).floor(), Vector2.ONE), Color(c, 0.4 + 0.5 * (1.0 - d) * tw))
 	# Moths: erratic little orbits, lit warm on the lamp side.
 	for m in _moths:
 		var a: float = m[0] + _t * m[2]

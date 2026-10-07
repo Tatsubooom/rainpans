@@ -32,7 +32,7 @@ static func build() -> Dictionary:
 		"weeds": [[Vector2(132, 176), 5], [Vector2(252, 141), 4], [Vector2(198, 138), 5], [Vector2(296, 160), 3]],
 		"flicker": [Rect2(243, 103, 16, 12)],
 		"perches": [Vector2(40, 78), Vector2(90, 78), Vector2(250, 89), Vector2(296, 89), Vector2(160, 126)],
-		"ambient": Color(0.9, 0.96, 1.0),
+		"ambient": Color(0.86, 0.86, 1.06),
 		"bed": "wind",
 		"reverb_room": 0.86,
 		"windows": [Vector2(222, 112), Vector2(250, 112), Vector2(278, 112)],

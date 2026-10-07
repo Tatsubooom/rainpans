@@ -16,26 +16,26 @@ static var RAIN := Color("8fa2bb")
 static var RAIN_HI := Color("c3d1e3")
 
 # concrete
-static var CON0 := Color("16181d")
+static var CON0 := Color("15161f")
 static var CON1 := Color("1f2228")
 static var CON2 := Color("2a2e35")
 static var CON3 := Color("383d45")
 static var CON4 := Color("4b5059")
-static var CON5 := Color("626873")
+static var CON5 := Color("68686f")
 static var CON6 := Color("7d838e")
 
 # rust / earth
-static var RUST0 := Color("24160f")
-static var RUST1 := Color("3d2216")
+static var RUST0 := Color("26141a")
+static var RUST1 := Color("40211c")
 static var RUST2 := Color("5e331e")
 static var RUST3 := Color("8a4c29")
-static var RUST4 := Color("b56c38")
+static var RUST4 := Color("c07a3e")
 
 # moss
-static var MOSS0 := Color("17221c")
+static var MOSS0 := Color("142026")
 static var MOSS1 := Color("23352a")
 static var MOSS2 := Color("37503a")
-static var MOSS3 := Color("55714c")
+static var MOSS3 := Color("6a7d4a")
 
 # lamp light (bright -> deep)
 static var LAMP0 := Color("fff1c9")

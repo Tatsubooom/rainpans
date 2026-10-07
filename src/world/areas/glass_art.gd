@@ -69,7 +69,9 @@ static func build() -> Dictionary:
 		"roof_profile": _profile(),
 		"broken": BROKEN,
 		"bed": "glass",
-		"ambient": Color(0.9, 0.97, 0.98),
+		"fireflies": 18,
+		"firefly_rect": Rect2(20, 90, 280, 42),
+		"ambient": Color(0.84, 0.98, 0.9),
 		"reverb_room": 0.84,
 	}
 

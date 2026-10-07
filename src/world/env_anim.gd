@@ -61,10 +61,14 @@ func _draw() -> void:
 		var on: bool = fmod(_t, period) < period * float(b[3])
 		var p: Vector2 = b[0]
 		if on:
-			draw_rect(Rect2(p, Vector2.ONE), b[1])
-			draw_rect(Rect2(p + Vector2(-1, 0), Vector2.ONE), Color(b[1], 0.35))
-			draw_rect(Rect2(p + Vector2(1, 0), Vector2.ONE), Color(b[1], 0.35))
-			draw_rect(Rect2(p + Vector2(0, -1), Vector2.ONE), Color(b[1], 0.35))
+			# A bright core with a soft glow around it (Noita-style bloom).
+			for oy in range(-3, 4):
+				for ox in range(-3, 4):
+					var d := Vector2(ox, oy).length()
+					if d < 0.5 or d > 3.2:
+						continue
+					draw_rect(Rect2(p + Vector2(ox, oy), Vector2.ONE), Color(b[1], 0.42 / (d * d)))
+			draw_rect(Rect2(p, Vector2(2, 2)), Color(b[1]).lightened(0.35))
 		else:
 			draw_rect(Rect2(p, Vector2.ONE), Color(b[1], 0.25))
 

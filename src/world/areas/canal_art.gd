@@ -36,7 +36,7 @@ static func build() -> Dictionary:
 		"floor_y": FLOOR_TOP,
 		"blinks": [[Vector2(231, 79), Color("3aa060"), 5.0, 0.92]],
 		"trickles": [[Vector2(HOLE_X0 + 6, VAULT_Y - 6), 150.0], [Vector2(HOLE_X1 - 8, VAULT_Y - 6), 148.0]],
-		"ambient": Color(0.82, 0.86, 0.96),
+		"ambient": Color(0.98, 0.86, 0.8),
 		"bed": "water",
 		"reverb_room": 0.97,
 		"shaft": Rect2(HOLE_X0, 0, HOLE_X1 - HOLE_X0, 160),

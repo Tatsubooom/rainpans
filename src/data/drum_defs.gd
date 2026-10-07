@@ -309,6 +309,12 @@ static var DEFS := {
 }
 
 
+## World pixels per sprite pixel: 2 for sprites still on the old 320 grid,
+## 1 for sprites painted at full resolution ("hires": true).
+static func pixel_scale(id: String) -> int:
+	return 1 if DEFS[id].get("hires", false) else 2
+
+
 static func get_def(id: String) -> Dictionary:
 	return DEFS[id]
 

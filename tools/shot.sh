@@ -13,6 +13,6 @@ fi
 abs="$(cd "$(dirname "$out")" && pwd)/$(basename "$out")"
 timeout 180 xvfb-run -a -s "-screen 0 1280x720x24" \
   "$GODOT" --rendering-driver opengl3 --audio-driver Dummy --path . \
-  --resolution 320x180 -- --no-save --shot="$abs" "$@" 2>&1 \
+  --resolution 640x360 -- --no-save --shot="$abs" "$@" 2>&1 \
   | grep -vE "ALSA|audio driver|dummy driver|audio_server|init_output_device|^\s*at: " || true
 test -f "$abs"

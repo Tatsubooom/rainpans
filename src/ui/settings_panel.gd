@@ -95,7 +95,7 @@ func _activate(id: String, up: bool) -> void:
 			v = clampf(snappedf(v + (0.1 if up else -0.1), 0.1), 0.0, 1.0)
 			s[id] = v
 			Game.apply_audio()
-			Synth.play("can", 2, Vector2(160, 90), 0.5, -3)
+			Synth.play("can", 2, Vector2(320, 180), 0.5, -3)
 		"quantize":
 			s.quantize = not s.get("quantize", false)
 		"fullscreen":

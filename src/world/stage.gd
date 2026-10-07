@@ -65,9 +65,9 @@ func build(id: String) -> void:
 	sky_sprite = _layer(layers.sky)
 	# Dusk/dawn light low on the horizon (faded in by time of day).
 	horizon = Sprite2D.new()
-	horizon.texture = EnvFx.horizon_texture(320, 70)
+	horizon.texture = EnvFx.horizon_texture(640, 140)
 	horizon.centered = false
-	horizon.position = Vector2(0, 52)
+	horizon.position = Vector2(0, 104)
 	horizon.modulate.a = 0.0
 	var hmat := CanvasItemMaterial.new()
 	hmat.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
@@ -82,9 +82,9 @@ func build(id: String) -> void:
 	add_child(rain_far)
 	rain_far.rate = Game.rain_rate() * 1.2
 	rain_far.setup(area, Rain.FAR)
-	_mist(EnvFx.mist_texture(260, 26, 1, Pal.FOG1, 1.2), Vector2(-40, 92), 2.0)
+	_mist(EnvFx.mist_texture(520, 52, 1, Pal.FOG1, 1.2), Vector2(-80, 184), 4.0)
 	_layer(layers.mid)
-	_mist(EnvFx.mist_texture(220, 18, 2, Pal.FOG0, 1.0), Vector2(120, 108), -1.4)
+	_mist(EnvFx.mist_texture(440, 36, 2, Pal.FOG0, 1.0), Vector2(240, 216), -2.8)
 	_layer(layers.floor)
 
 	ripples = Ripples.new()
@@ -128,30 +128,30 @@ func build(id: String) -> void:
 		smat.light_mode = CanvasItemMaterial.LIGHT_MODE_UNSHADED
 		shaft.material = smat
 		add_child(shaft)
-	_mist(EnvFx.mist_texture(300, 14, 3, Pal.FOG0, 0.7), Vector2(0, 160), 0.8)
+	_mist(EnvFx.mist_texture(600, 28, 3, Pal.FOG0, 0.7), Vector2(0, 320), 1.6)
 	# Thick fog banks that only show on misty nights.
 	fog_banks.clear()
 	for i in 3:
 		var fb := Sprite2D.new()
-		fb.texture = EnvFx.mist_texture(360, 40, 20 + i, Pal.FOG1, 1.6)
+		fb.texture = EnvFx.mist_texture(720, 80, 20 + i, Pal.FOG1, 1.6)
 		fb.centered = false
-		fb.position = Vector2(-20 - i * 30, 70 + i * 28)
+		fb.position = Vector2(-40 - i * 60, 140 + i * 56)
 		fb.modulate.a = 0.0
-		fb.set_meta("speed", 1.2 + i * 0.5)
+		fb.set_meta("speed", 2.4 + i * 1.0)
 		fb.set_meta("x0", fb.position.x)
 		add_child(fb)
 		fog_banks.append(fb)
 
 	# Lantern: a banded warm light plus a tight bright core.
 	lamp_light = PointLight2D.new()
-	lamp_light.texture = EnvFx.light_texture(80, 6)
+	lamp_light.texture = EnvFx.light_texture(160, 8)
 	lamp_light.position = area.lamp
 	lamp_light.color = area.lamp_color
 	lamp_light.energy = 2.2
 	lamp_light.blend_mode = Light2D.BLEND_MODE_ADD
 	add_child(lamp_light)
 	glow_light = PointLight2D.new()
-	glow_light.texture = EnvFx.light_texture(16, 3)
+	glow_light.texture = EnvFx.light_texture(32, 4)
 	glow_light.position = area.lamp
 	glow_light.color = Pal.LAMP1
 	glow_light.energy = 0.7
@@ -159,7 +159,7 @@ func build(id: String) -> void:
 
 	# Visible glow in the wet air around the lantern (additive, dithered bands).
 	halo = Sprite2D.new()
-	halo.texture = EnvFx.halo_texture(34, Pal.LAMP3)
+	halo.texture = EnvFx.halo_texture(68, Pal.LAMP3)
 	halo.position = area.lamp
 	var mat := CanvasItemMaterial.new()
 	mat.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
@@ -170,7 +170,7 @@ func build(id: String) -> void:
 	# Secondary warm sources (lit windows etc.).
 	for wp in area.get("windows", []):
 		var wl := PointLight2D.new()
-		wl.texture = EnvFx.light_texture(28, 4)
+		wl.texture = EnvFx.light_texture(56, 5)
 		wl.position = wp
 		wl.color = Pal.LAMP3
 		wl.energy = 1.1
@@ -231,7 +231,7 @@ func apply_upgrades() -> void:
 
 func degree_for(x: float) -> int:
 	# Left to right walks up the pentatonic scale.
-	return int(round(lerpf(-3.0, 4.0, clampf(x / 320.0, 0.0, 1.0))))
+	return int(round(lerpf(-3.0, 4.0, clampf(x / AreaLibrary.W, 0.0, 1.0))))
 
 
 func _spawn_drum(entry: Dictionary) -> Drum:
@@ -249,7 +249,7 @@ func _spawn_drum(entry: Dictionary) -> Drum:
 
 
 func _relight(d: Drum) -> void:
-	d.relight(area.lamp, 90.0 + 12.0 * Game.level("lamp"), area.lamp_color)
+	d.relight(area.lamp, 180.0 + 24.0 * Game.level("lamp"), area.lamp_color)
 
 
 func drum_for_entry(entry: Dictionary) -> Drum:
@@ -270,7 +270,7 @@ func valid_spot(d: Drum, pos: Vector2) -> bool:
 	if not f.has_point(pos):
 		return false
 	var half := d.size().x / 2.0
-	if pos.x - half < 0.0 or pos.x + half > 320.0:
+	if pos.x - half < 0.0 or pos.x + half > AreaLibrary.W:
 		return false
 	# No stacking: another drum at nearly the same depth must not overlap.
 	for o in rain.drums:
@@ -278,7 +278,7 @@ func valid_spot(d: Drum, pos: Vector2) -> bool:
 		if other == d:
 			continue
 		var oh := other.size().x / 2.0
-		if absf(other.position.y - pos.y) < 7.0 and absf(other.position.x - pos.x) < half + oh:
+		if absf(other.position.y - pos.y) < 14.0 and absf(other.position.x - pos.x) < half + oh:
 			return false
 	return true
 
@@ -291,7 +291,7 @@ func _blocking_drum(d: Drum, pos: Vector2) -> Drum:
 		if other == d or other.ghost:
 			continue
 		var oh := other.size().x / 2.0
-		if absf(other.position.y - pos.y) < 7.0 and absf(other.position.x - pos.x) < half + oh:
+		if absf(other.position.y - pos.y) < 14.0 and absf(other.position.x - pos.x) < half + oh:
 			return other
 	return null
 
@@ -586,12 +586,12 @@ func _process(delta: float) -> void:
 	for fb in fog_banks:
 		fb.modulate.a = _mist_k
 		var fsp: float = fb.get_meta("speed")
-		fb.position.x = floorf(wrapf(float(fb.get_meta("x0")) + _wind_x * fsp, -360.0, 40.0))
+		fb.position.x = floorf(wrapf(float(fb.get_meta("x0")) + _wind_x * fsp, -720.0, 80.0))
 	for m in mist:
 		var sp: float = m.get_meta("speed")
 		var x0: float = m.get_meta("x0")
 		var tw: float = m.texture.get_width()
-		m.position.x = floorf(wrapf(x0 + _wind_x * sp, -tw, 320.0 + tw * 0.25))
+		m.position.x = floorf(wrapf(x0 + _wind_x * sp, -tw, AreaLibrary.W + tw * 0.25))
 
 	# Distant lightning only in heavier rain.
 	if Game.rain_level() > 0.55 or _storm_k > 0.5:

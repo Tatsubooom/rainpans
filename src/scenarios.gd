@@ -24,7 +24,10 @@ static func run(main: Node, name: String) -> void:
 	main.get_tree().quit()
 
 
+## Scenario coordinates are written on the 320x180 grid (UI layout units);
+## events are sent in window pixels (2x).
 static func _move(p: Vector2) -> void:
+	p *= UiKit.UI_SCALE
 	var e := InputEventMouseMotion.new()
 	e.position = p
 	e.global_position = p
@@ -32,6 +35,7 @@ static func _move(p: Vector2) -> void:
 
 
 static func _button(p: Vector2, pressed: bool, button := MOUSE_BUTTON_LEFT) -> void:
+	p *= UiKit.UI_SCALE
 	var e := InputEventMouseButton.new()
 	e.position = p
 	e.global_position = p
@@ -89,14 +93,14 @@ static func _drag(main: Node) -> void:
 		return
 	# 2b) Click the placed can without moving: it is played by hand.
 	var can0: Drum = stage.rain.drums[0]
-	var tap := can0.position + Vector2(0, -4)
+	var tap := can0.position / 2.0 + Vector2(0, -4)
 	await _glide(main, Vector2(60, 80), tap, 4)
 	var hits0 := Game.hits_total
 	_button(tap, true)
 	await _frames(main, 1)
 	_button(tap, false)
 	await _frames(main, 2)
-	if Game.hits_total <= hits0 or absf(Game.placed_in_area()[0].x - 120.0) > 0.5:
+	if Game.hits_total <= hits0 or absf(Game.placed_in_area()[0].x - 240.0) > 1.0:
 		print("SCENARIO FAIL click did not play (or moved) the can")
 		return
 	# 2c) Keyboard: A plays the leftmost drum; wheel retunes it.
@@ -110,8 +114,8 @@ static func _drag(main: Node) -> void:
 		print("SCENARIO FAIL key A did not play")
 		return
 	var wheel := InputEventMouseButton.new()
-	wheel.position = tap
-	wheel.global_position = tap
+	wheel.position = tap * UiKit.UI_SCALE
+	wheel.global_position = tap * UiKit.UI_SCALE
 	wheel.button_index = MOUSE_BUTTON_WHEEL_UP
 	wheel.pressed = true
 	Input.parse_input_event(wheel)
@@ -121,7 +125,7 @@ static func _drag(main: Node) -> void:
 		return
 	# 3) Move the can, then right-click it back to the shelf.
 	var can: Drum = stage.rain.drums[0]
-	var grab := can.position + Vector2(0, -4)
+	var grab := can.position / 2.0 + Vector2(0, -4)
 	await _glide(main, tap, grab)
 	_button(grab, true)
 	await _frames(main, 1)
@@ -129,10 +133,10 @@ static func _drag(main: Node) -> void:
 	_button(Vector2(200, 160), false)
 	await _frames(main, 2)
 	var e: Dictionary = Game.placed_in_area()[0]
-	if absf(e.x - 200.0) > 2.0:
+	if absf(e.x - 400.0) > 4.0:
 		print("SCENARIO FAIL move did not stick: ", e)
 		return
-	var grab2 := Vector2(e.x, e.y - 4.0)
+	var grab2 := Vector2(e.x, e.y - 8.0) / 2.0
 	await _glide(main, Vector2(200, 160), grab2, 2)
 	_button(grab2, true, MOUSE_BUTTON_RIGHT)
 	await _frames(main, 2)
@@ -307,7 +311,7 @@ static func _travel(main: Node) -> void:
 	Game.owned = {"can": 2, "bucket": 1}
 	main.stage.build("roof")
 	main.hud.bind_stage(main.stage)
-	main.stage.place_drum("can", Vector2(60, 150))
+	main.stage.place_drum("can", Vector2(120, 300))
 	for a in ["rail", "glass", "canal"]:
 		if not Game.open_area(a):
 			print("SCENARIO FAIL could not open ", a)
@@ -317,7 +321,7 @@ static func _travel(main: Node) -> void:
 		if main.stage.area_id != a or not main.stage.rain.drums.is_empty():
 			print("SCENARIO FAIL fresh area not empty: ", a)
 			return
-		main.stage.place_drum("bucket", Vector2(150, 156))
+		main.stage.place_drum("bucket", Vector2(300, 312))
 		await _frames(main, 2)
 	# Start a drag, then travel away mid-drag.
 	main.stage.begin_shelf_drag("can")
@@ -378,8 +382,8 @@ static func _loop(main: Node) -> void:
 	main.stage.build("roof")
 	main.hud.bind_stage(main.stage)
 	main.looper.load_from_save()
-	main.stage.place_drum("can", Vector2(60, 150))
-	main.stage.place_drum("bucket", Vector2(200, 150))
+	main.stage.place_drum("can", Vector2(120, 300))
+	main.stage.place_drum("bucket", Vector2(400, 300))
 	main.stage.rain.drip_rate = 0.0
 	await _frames(main, 3)
 	_key(KEY_R)
@@ -424,7 +428,7 @@ static func _swap(main: Node) -> void:
 	for y in [142, 152, 162, 172]:
 		for x in range(20, 300, 56):
 			if i < Game.capacity():
-				stage.place_drum("can", Vector2(x, y))
+				stage.place_drum("can", Vector2(x, y) * 2)
 				i += 1
 	if not Game.area_full():
 		print("SCENARIO FAIL could not fill the roof: ", Game.placed_in_area().size())

@@ -45,10 +45,10 @@ func _process(delta: float) -> void:
 func _draw() -> void:
 	for r in _rings:
 		var t: float = r[2] / r[3]
-		var rx: float = (2.0 + t * (9.0 if r[4] else 6.0))
-		var ry := maxf(1.0, rx * 0.3)
+		var rx: float = (4.0 + t * (18.0 if r[4] else 12.0))
+		var ry := maxf(1.0, rx * 0.28)
 		var col := Pal.RAIN if t < 0.5 else Pal.FOG1
-		var near_lamp := Vector2(r[0], r[1]).distance_to(lamp) < 60.0
+		var near_lamp := Vector2(r[0], r[1]).distance_to(lamp) < 120.0
 		if near_lamp and t < 0.6:
 			col = Pal.LAMP2
 		# Clean pixel ellipse: one point above and below per column; the
@@ -67,10 +67,10 @@ func _draw() -> void:
 	for pr in puddles:
 		var rect: Rect2 = pr
 		var c := rect.get_center()
-		if c.distance_to(lamp) > 140.0:
+		if c.distance_to(lamp) > 280.0:
 			continue
 		for k in 3:
 			var gx := floorf(c.x + (lamp.x - c.x) * 0.08 + sin(_shimmer * 1.3 + k * 2.1) * rect.size.x * 0.18)
-			var gy := floorf(rect.position.y + 1.0 + k * 1.0)
+			var gy := floorf(rect.position.y + 2.0 + k * 2.0)
 			if is_puddle(Vector2(gx, gy)):
-				draw_rect(Rect2(gx, gy, 2 if k == 0 else 1, 1), Pal.LAMP3 if k > 0 else Pal.LAMP2)
+				draw_rect(Rect2(gx, gy, 4 if k == 0 else 2, 1), Pal.LAMP3 if k > 0 else Pal.LAMP2)

@@ -35,18 +35,18 @@ func setup(a: Dictionary) -> void:
 	_streaks.clear()
 	if not roof.is_empty():
 		for i in 26:
-			_streaks.append([_rng.randf_range(0.0, 320.0), _rng.randf_range(4.0, 12.0)])
+			_streaks.append([_rng.randf_range(0.0, 640.0), _rng.randf_range(8.0, 24.0)])
 
 
 func _process(delta: float) -> void:
 	_t += delta
 	for st in _streaks:
 		# Water slides away from the ridge toward the eaves, faster lower down.
-		var dir := 1.0 if st[0] >= 160.0 else -1.0
-		st[0] += dir * st[1] * delta * (0.6 + absf(st[0] - 160.0) / 120.0)
-		if st[0] < 0.0 or st[0] >= 320.0:
-			st[0] = 160.0 + _rng.randf_range(-40.0, 40.0)
-			st[1] = _rng.randf_range(4.0, 12.0)
+		var dir := 1.0 if st[0] >= 320.0 else -1.0
+		st[0] += dir * st[1] * delta * (0.6 + absf(st[0] - 320.0) / 240.0)
+		if st[0] < 0.0 or st[0] >= 640.0:
+			st[0] = 320.0 + _rng.randf_range(-80.0, 80.0)
+			st[1] = _rng.randf_range(8.0, 24.0)
 	_flick_t -= delta
 	if _flick_t <= 0.0:
 		# Mostly steady; now and then a short stutter.
@@ -76,22 +76,22 @@ func _draw() -> void:
 			var y := top.y
 			while y < bottom:
 				# A broken stream: segments flicker as water bunches up.
-				var seg := int(y + _t * 90.0) % 7
+				var seg := int(y + _t * 180.0) % 7
 				if seg < 4 + int(strength * 3.0):
-					var dx := floorf(sin(y * 0.3 + _t * 4.0) * 0.6 + wind * (y - top.y) * 0.3)
+					var dx := floorf(sin(y * 0.15 + _t * 4.0) * 1.2 + wind * (y - top.y) * 0.3)
 					draw_rect(Rect2(top.x + dx, y, 1, 1), Pal.RAIN if seg % 3 else Pal.RAIN_HI)
 				y += 1.0
 			# Splash where it lands.
 			if int(_t * 12.0) % 2 == 0:
-				draw_rect(Rect2(top.x - 1, bottom - 1, 3, 1), Pal.RAIN)
-				draw_rect(Rect2(top.x + (1 if int(_t * 7.0) % 2 else -2), bottom - 2, 1, 1), Pal.RAIN_HI)
+				draw_rect(Rect2(top.x - 3, bottom - 1, 7, 1), Pal.RAIN)
+				draw_rect(Rect2(top.x + (2 if int(_t * 7.0) % 2 else -3), bottom - 3, 1, 2), Pal.RAIN_HI)
 
 	for w in weeds:
 		var base: Vector2 = w[0]
 		var h: int = w[1]
 		for k in h:
 			# Tip bends most; gusts push everything the same way.
-			var bend := (float(k) / h) * (wind * -18.0 + sin(_t * 1.7 + base.x) * 0.8)
+			var bend := (float(k) / h) * (wind * -36.0 + sin(_t * 1.7 + base.x) * 1.6)
 			var col := Pal.MOSS2 if k < h - 2 else Pal.MOSS3
 			draw_rect(Rect2(floorf(base.x + bend), base.y - k, 1, 1), col)
 
@@ -105,7 +105,7 @@ func _draw() -> void:
 			continue
 		var y := floorf(roof[x]) + 1.0
 		draw_rect(Rect2(x, y, 1, 1), Pal.RAIN_HI)
-		var back := -1 if st[0] >= 160.0 else 1
+		var back := -1 if st[0] >= 320.0 else 1
 		if x + back >= 0 and x + back < roof.size():
 			draw_rect(Rect2(x + back, floorf(roof[x + back]) + 1.0, 1, 1), Pal.RAIN)
 

@@ -57,7 +57,7 @@ func _gui_input(event: InputEvent) -> void:
 			if not Game.buy_drum(id):
 				return
 			_flash[id] = 0.4
-			Synth.play(id, 0, Vector2(160, 90), 0.4, -2)
+			Synth.play(id, 0, Vector2(320, 180), 0.4, -2)
 		drag_requested.emit(id)
 		info.emit(_describe(i))
 		accept_event()

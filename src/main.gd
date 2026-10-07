@@ -27,7 +27,7 @@ func _ready() -> void:
 		var arr := []
 		var ids: Array = DrumDefs.ORDER
 		for i in Game.AREA_CAP[a]:
-			arr.append({"id": ids[i % ids.size()], "x": 16.0 + (i % 10) * 30.0, "y": 142.0 + (i / 10) * 9.0})
+			arr.append({"id": ids[i % ids.size()], "x": 32.0 + (i % 10) * 60.0, "y": 284.0 + (i / 10) * 18.0})
 		Game.placements = {a: arr}
 		Game.levels["rain"] = 10
 		Game.levels["drip"] = 6
@@ -132,29 +132,29 @@ func _demo_state() -> void:
 	Game.levels["rain"] = int(_args.get("rain", "3"))
 	Game.levels["drip"] = 2
 	Game.placements = {"glass": [
-		{"id": "bottle", "x": 64.0, "y": 150.0},
-		{"id": "pot", "x": 156.0, "y": 156.0},
-		{"id": "kettle", "x": 226.0, "y": 146.0},
-		{"id": "helmet", "x": 100.0, "y": 150.0},
-		{"id": "drum", "x": 284.0, "y": 160.0},
-		{"id": "can", "x": 30.0, "y": 166.0},
+		{"id": "bottle", "x": 128.0, "y": 300.0},
+		{"id": "pot", "x": 312.0, "y": 312.0},
+		{"id": "kettle", "x": 452.0, "y": 292.0},
+		{"id": "helmet", "x": 200.0, "y": 300.0},
+		{"id": "drum", "x": 568.0, "y": 320.0},
+		{"id": "can", "x": 60.0, "y": 332.0},
 	], "rail": [
-		{"id": "kettle", "x": 70.0, "y": 154.0},
-		{"id": "pipes", "x": 40.0, "y": 150.0},
-		{"id": "tin", "x": 168.0, "y": 160.0},
-		{"id": "drum", "x": 230.0, "y": 152.0},
-		{"id": "bottle", "x": 196.0, "y": 170.0},
-		{"id": "helmet", "x": 270.0, "y": 166.0},
-		{"id": "pot", "x": 110.0, "y": 172.0},
+		{"id": "kettle", "x": 140.0, "y": 308.0},
+		{"id": "pipes", "x": 80.0, "y": 300.0},
+		{"id": "tin", "x": 336.0, "y": 320.0},
+		{"id": "drum", "x": 460.0, "y": 304.0},
+		{"id": "bottle", "x": 392.0, "y": 340.0},
+		{"id": "helmet", "x": 540.0, "y": 332.0},
+		{"id": "pot", "x": 220.0, "y": 344.0},
 	], "roof": [
-		{"id": "can", "x": 40.0, "y": 150.0},
-		{"id": "bucket", "x": 74.0, "y": 141.0},
-		{"id": "helmet", "x": 128.0, "y": 158.0},
-		{"id": "drum", "x": 172.0, "y": 146.0},
-		{"id": "can", "x": 214.0, "y": 152.0},
-		{"id": "pot", "x": 252.0, "y": 165.0},
-		{"id": "bottle", "x": 98.0, "y": 170.0},
-		{"id": "bucket", "x": 290.0, "y": 150.0},
+		{"id": "can", "x": 80.0, "y": 300.0},
+		{"id": "bucket", "x": 148.0, "y": 282.0},
+		{"id": "helmet", "x": 256.0, "y": 316.0},
+		{"id": "drum", "x": 344.0, "y": 292.0},
+		{"id": "can", "x": 428.0, "y": 304.0},
+		{"id": "pot", "x": 504.0, "y": 330.0},
+		{"id": "bottle", "x": 196.0, "y": 340.0},
+		{"id": "bucket", "x": 580.0, "y": 300.0},
 	]}
 
 

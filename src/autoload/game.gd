@@ -5,7 +5,7 @@ signal changed
 signal unlocked(what: String)
 
 const SAVE_PATH := "user://rainpans.save.json"
-const SAVE_VERSION := 1
+const SAVE_VERSION := 2
 const OFFLINE_CAP_SEC := 8.0 * 3600.0
 const OFFLINE_RATE := 0.5
 
@@ -329,11 +329,13 @@ func from_dict(d: Dictionary) -> void:
 			owned[k] = int(d.owned[k])
 	placements = {}
 	var pl: Dictionary = d.get("placements", {})
+	# Version 1 saves stored positions on the old 320x180 grid.
+	var pos_k := 2.0 if int(d.get("v", 1)) < 2 else 1.0
 	for a in pl:
 		var arr := []
 		for p in pl[a]:
 			if DrumDefs.DEFS.has(p.get("id", "")):
-				arr.append({"id": p.id, "x": float(p.x), "y": float(p.y), "tune": int(p.get("tune", 0))})
+				arr.append({"id": p.id, "x": float(p.x) * pos_k, "y": float(p.y) * pos_k, "tune": int(p.get("tune", 0))})
 		placements[a] = arr
 	area = d.get("area", "roof")
 	areas_open = d.get("areas_open", ["roof"])

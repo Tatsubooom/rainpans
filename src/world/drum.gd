@@ -4,8 +4,8 @@ extends Node2D
 
 signal struck(drum: Drum, amount: float)
 
-const DEPTH_FRONT := 3.0
-const DEPTH_BACK := 9.0
+const DEPTH_FRONT := 6.0
+const DEPTH_BACK := 18.0
 
 var id := ""
 var def: Dictionary
@@ -23,12 +23,22 @@ var tune := 0 # player's offset in scale steps (mouse wheel)
 var _tune_show := 0.0
 var shadow_len := 0.0 # cast away from the lamp along the floor
 var shadow_dir := 1.0
+## Catching mouth in local sprite px (from the def, scaled to world px).
+var lid0 := 0
+var lid1 := 0
 
 
 func setup(drum_id: String) -> void:
 	id = drum_id
 	def = DrumDefs.get_def(id)
 	img = DrumDefs.make_image(id)
+	var k := DrumDefs.pixel_scale(id)
+	if k > 1:
+		# Sprites drawn on the old 320x180 grid: show them at 2x for now.
+		img.resize(img.get_width() * k, img.get_height() * k, Image.INTERPOLATE_NEAREST)
+	var lid: Array = def.lid
+	lid0 = lid[0] * k
+	lid1 = lid[1] * k + k - 1
 	tex = ImageTexture.create_from_image(img)
 
 
@@ -63,7 +73,7 @@ func relight(lamp: Vector2, radius: float, color: Color) -> void:
 				lit.set_pixel(x, y, c.lerp(rim, 0.45 + 0.4 * k))
 	tex = ImageTexture.create_from_image(lit)
 	var d := position.distance_to(lamp)
-	shadow_len = floorf(clampf((1.0 - d / (radius * 1.3)) * 14.0, 0.0, 12.0))
+	shadow_len = floorf(clampf((1.0 - d / (radius * 1.3)) * 28.0, 0.0, 24.0))
 	shadow_dir = 1.0 if position.x >= lamp.x else -1.0
 
 
@@ -77,7 +87,7 @@ func top_left() -> Vector2:
 
 ## Y of the catching surface (the open top / upper face).
 func surface_y() -> float:
-	return top_left().y + 2.0
+	return top_left().y + 4.0
 
 
 func contains(p: Vector2) -> bool:
@@ -102,11 +112,10 @@ func try_catch(x: float, y0: float, y1: float, depth: float, vel: float) -> bool
 	if depth < position.y - DEPTH_BACK or depth > position.y + DEPTH_FRONT:
 		return false
 	var tl := top_left()
-	var lid: Array = def.lid
-	if x < tl.x + lid[0] or x >= tl.x + lid[1] + 1:
+	if x < tl.x + lid0 or x >= tl.x + lid1 + 1:
 		return false
 	var sy := surface_y()
-	if y1 < sy or y0 > sy + 3.0:
+	if y1 < sy or y0 > sy + 6.0:
 		return false
 	strike(vel)
 	return true
@@ -122,7 +131,7 @@ func strike(vel: float, by_hand := false, always_sound := false) -> void:
 	_hits_recent += 1.0
 	var amount: float = Game.earn(def.yield * (0.6 if by_hand else 1.0))
 	if played and (by_hand or randf() < 0.3) and _notes.size() < 3:
-		_notes.append([randf_range(-3.0, 3.0), -img.get_height() - 3.0, 0.0])
+		_notes.append([randf_range(-6.0, 6.0), -img.get_height() - 6.0, 0.0])
 	struck.emit(self, amount)
 
 
@@ -135,8 +144,8 @@ func _process(delta: float) -> void:
 	while i < _notes.size():
 		var n: Array = _notes[i]
 		n[2] += delta
-		n[1] -= delta * 7.0
-		n[0] += sin(n[2] * 3.0) * delta * 3.0
+		n[1] -= delta * 14.0
+		n[0] += sin(n[2] * 3.0) * delta * 6.0
 		if n[2] > 1.6:
 			_notes.remove_at(i)
 		else:
@@ -150,19 +159,20 @@ func _draw() -> void:
 	var h := img.get_height()
 	if not ghost:
 		# Contact shadow and a wet dark ring on the floor.
-		var sw := w + 2
+		var sw := w + 4
 		for x in range(-sw / 2, sw / 2 + 1):
-			var edge := absf(x) > sw / 2 - 2
-			draw_rect(Rect2(x, 0, 1, 1), Pal.CON0 if not edge else Pal.CON1)
-		draw_rect(Rect2(-w / 2 + 1, 1, w - 2, 1), Pal.CON1)
+			var edge := absf(x) > sw / 2 - 4
+			draw_rect(Rect2(x, -1, 1, 2), Pal.CON0 if not edge else Pal.CON1)
+		draw_rect(Rect2(-w / 2 + 2, 1, w - 4, 1), Pal.CON1)
+		draw_rect(Rect2(-w / 2 + 4, 2, w - 8, 1), Pal.CON1)
 		if shadow_len > 0.0:
 			# Long soft shadow thrown by the lantern, thinning with distance.
 			for i in int(shadow_len):
 				var sx := (w / 2.0 + i) * shadow_dir - (0.0 if shadow_dir > 0 else 1.0)
 				if i < shadow_len * 0.6 or (i % 2 == 0):
-					draw_rect(Rect2(floorf(sx), 0, 1, 1), Pal.CON0)
+					draw_rect(Rect2(floorf(sx), 0, 1, 2), Pal.CON0)
 				if i < shadow_len * 0.35:
-					draw_rect(Rect2(floorf(sx), -1, 1, 1), Pal.CON1)
+					draw_rect(Rect2(floorf(sx), -2, 1, 2), Pal.CON1)
 	var bob := -1.0 if _wobble > 0.6 else 0.0
 	var mod := Color(1, 1, 1, 1)
 	if ghost:
@@ -183,11 +193,11 @@ func _draw() -> void:
 					draw_rect(Rect2(tl + Vector2(x, y), Vector2.ONE), Pal.LAMP1)
 	if _tune_show > 0.0 and not ghost:
 		# Tuning pips under the drum: centre mark plus one pip per step.
-		var y := 3.0
-		draw_rect(Rect2(0, y, 1, 1), Pal.FOG1)
+		var y := 6.0
+		draw_rect(Rect2(0, y, 2, 2), Pal.FOG1)
 		for k in absi(tune):
-			var x := (k + 1) * 2 * signi(tune)
-			draw_rect(Rect2(x, y, 1, 1), Pal.LAMP1 if tune > 0 else Pal.RAIN)
+			var x := (k + 1) * 4 * signi(tune)
+			draw_rect(Rect2(x, y, 2, 2), Pal.LAMP1 if tune > 0 else Pal.RAIN)
 	for n in _notes:
 		# A three-pixel note: head and stem, fading through the palette.
 		var age: float = n[2]
@@ -195,19 +205,21 @@ func _draw() -> void:
 			continue
 		var col := Pal.LAMP1 if age < 0.4 else (Pal.RAIN if age < 0.9 else Pal.FOG1)
 		var p := Vector2(floorf(n[0]), floorf(n[1]))
-		draw_rect(Rect2(p, Vector2(2, 1)), col)
-		draw_rect(Rect2(p + Vector2(1, -3), Vector2(1, 3)), col)
+		# Note head (3x2) and a stem with a little flag.
+		draw_rect(Rect2(p, Vector2(3, 2)), col)
+		draw_rect(Rect2(p + Vector2(2, -6), Vector2(1, 6)), col)
+		draw_rect(Rect2(p + Vector2(3, -6), Vector2(2, 1)), col)
+		draw_rect(Rect2(p + Vector2(4, -5), Vector2(1, 1)), col)
 	if _ring > 0.0 and not ghost:
 		# A small ring of sound: two pixels flaring out above the lid.
-		var lid: Array = def.lid
-		var cx: float = tl.x + (lid[0] + lid[1]) / 2.0
-		var spread: float = (1.0 - _ring) * ((lid[1] - lid[0]) / 2.0 + 3.0)
-		var y := tl.y + 1.0 - (1.0 - _ring) * 3.0
+		var cx: float = tl.x + (lid0 + lid1) / 2.0
+		var spread: float = (1.0 - _ring) * ((lid1 - lid0) / 2.0 + 6.0)
+		var y := tl.y + 2.0 - (1.0 - _ring) * 6.0
 		var col := Pal.RAIN_HI if _ring > 0.5 else Pal.RAIN
 		draw_rect(Rect2(floorf(cx - spread), floorf(y), 1, 1), col)
 		draw_rect(Rect2(floorf(cx + spread), floorf(y), 1, 1), col)
 		if _ring > 0.7:
-			draw_rect(Rect2(floorf(cx), floorf(tl.y + 2.0), 1, 1), Pal.BONE)
+			draw_rect(Rect2(floorf(cx), floorf(tl.y + 4.0), 1, 1), Pal.BONE)
 
 
 func show_tuning() -> void:

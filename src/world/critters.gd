@@ -55,11 +55,13 @@ func setup(a: Dictionary) -> void:
 	perches = a.get("perches", [])
 	_moths.clear()
 	for i in 3:
-		_moths.append([randf() * TAU, randf_range(5.0, 11.0), randf_range(1.5, 3.2), randf() * 10.0])
+		_moths.append([randf() * TAU, randf_range(10.0, 22.0), randf_range(1.5, 3.2), randf() * 10.0])
 	var key := {"o": Pal.INK, "x": Pal.FOG2, "b": Pal.CON4, "1": Pal.NIGHT4}
 	for k in ["sit", "peck", "fa", "fb"]:
 		var rows: Array = {"sit": CROW_SIT, "peck": CROW_PECK, "fa": CROW_FLY_A, "fb": CROW_FLY_B}[k]
-		_tex[k] = ImageTexture.create_from_image(PixCanvas.grid(rows, key))
+		var img := PixCanvas.grid(rows, key)
+		img.resize(img.get_width() * 2, img.get_height() * 2, Image.INTERPOLATE_NEAREST)
+		_tex[k] = ImageTexture.create_from_image(img)
 	_crow_wait = randf_range(20.0, 60.0)
 
 
@@ -78,11 +80,11 @@ func _crow_step(delta: float) -> void:
 			if _crow_wait <= 0.0:
 				_crow_target = perches[randi() % perches.size()]
 				var from_left := randf() < 0.5
-				_crow_pos = Vector2(-10.0 if from_left else 330.0, _crow_target.y - randf_range(40.0, 70.0))
+				_crow_pos = Vector2(-20.0 if from_left else 660.0, _crow_target.y - randf_range(80.0, 140.0))
 				_crow_flip = not from_left
 				_crow_state = "in"
 		"in":
-			_crow_pos = _crow_pos.move_toward(_crow_target, delta * 55.0)
+			_crow_pos = _crow_pos.move_toward(_crow_target, delta * 110.0)
 			if _crow_pos.distance_to(_crow_target) < 0.5:
 				_crow_state = "sit"
 				_crow_t = randf_range(18.0, 45.0)
@@ -98,8 +100,8 @@ func _crow_step(delta: float) -> void:
 				_crow_flip = randf() < 0.5
 		"out":
 			var dir := Vector2(-1.0 if _crow_flip else 1.0, -0.55)
-			_crow_pos += dir * delta * 60.0
-			if _crow_pos.x < -20.0 or _crow_pos.x > 340.0 or _crow_pos.y < -20.0:
+			_crow_pos += dir * delta * 120.0
+			if _crow_pos.x < -40.0 or _crow_pos.x > 680.0 or _crow_pos.y < -40.0:
 				_crow_state = "away"
 				_crow_wait = randf_range(60.0, 180.0)
 
@@ -125,7 +127,7 @@ func _draw() -> void:
 	elif _peck > 0.0:
 		key = "peck"
 	var tex: ImageTexture = _tex[key]
-	var pos := (_crow_pos - Vector2(3, 6)).floor()
+	var pos := (_crow_pos - Vector2(6, 12)).floor()
 	if _crow_flip:
 		draw_texture_rect(tex, Rect2(pos + Vector2(tex.get_width(), 0), Vector2(-tex.get_width(), tex.get_height())), false)
 	else:

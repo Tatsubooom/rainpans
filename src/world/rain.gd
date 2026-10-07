@@ -18,7 +18,7 @@ var rate := 30.0 # drops per second
 var drip_rate := 0.0 # drips per second per open drip point
 var drip_points := 0
 var lamp := Vector2(-999, -999)
-var lamp_radius := 46.0
+var lamp_radius := 92.0
 var flash := 0.0 # lightning brightness 0..1
 
 # drop arrays (struct-of-arrays for speed)
@@ -56,12 +56,12 @@ func setup(a: Dictionary, which: int) -> void:
 		_drip_acc[i] = _rng.randf()
 	# Pre-fill the sky so the first frame is already raining.
 	for i in int(rate * 1.2):
-		_spawn(_rng.randf_range(0.0, 180.0))
+		_spawn(_rng.randf_range(0.0, 360.0))
 
 
-func _spawn(y: float = -8.0) -> void:
+func _spawn(y: float = -16.0) -> void:
 	var floor_rect: Rect2 = area.floor
-	var x := _rng.randf_range(-20.0, 340.0)
+	var x := _rng.randf_range(-40.0, 680.0)
 	# Some areas only let rain in through an opening.
 	var key := "far_rain_rect" if layer == FAR else "rain_rect"
 	if area.has(key):
@@ -86,15 +86,16 @@ func _spawn(y: float = -8.0) -> void:
 	var speed: float
 	var ln: float
 	if layer == FAR:
-		depth = _rng.randf_range(110.0, 132.0)
+		depth = _rng.randf_range(220.0, 264.0)
 		if area.has("far_rain_rect"):
 			depth = (area.far_rain_rect as Rect2).end.y
-		speed = _rng.randf_range(150.0, 190.0)
-		ln = _rng.randf_range(2.0, 4.0)
+		speed = _rng.randf_range(300.0, 380.0)
+		ln = _rng.randf_range(4.0, 8.0)
 	else:
-		depth = _rng.randf_range(floor_rect.position.y - 4.0, floor_rect.end.y + 4.0)
-		speed = _rng.randf_range(250.0, 320.0) * (0.85 + 0.3 * (depth - 130.0) / 50.0)
-		ln = 4.0 + (depth - 130.0) / 14.0
+		depth = _rng.randf_range(floor_rect.position.y - 8.0, floor_rect.end.y + 8.0)
+		# Nearer drops fall faster and streak longer.
+		speed = _rng.randf_range(500.0, 640.0) * (0.85 + 0.3 * (depth - 260.0) / 100.0)
+		ln = 8.0 + (depth - 260.0) / 10.0
 	_x.append(x)
 	_y.append(y)
 	_vy.append(speed)
@@ -106,10 +107,10 @@ func _spawn(y: float = -8.0) -> void:
 func _spawn_drip(p: Vector2) -> void:
 	_x.append(p.x + _rng.randf_range(-0.4, 0.4))
 	_y.append(p.y)
-	_vy.append(40.0)
+	_vy.append(80.0)
 	# The lip of the overhang projects onto a fixed band of the floor.
-	_depth.append(float(area.get("drip_depth", 152.0)) + _rng.randf_range(-1.5, 1.5))
-	_len.append(2.0)
+	_depth.append(float(area.get("drip_depth", 304.0)) + _rng.randf_range(-3.0, 3.0))
+	_len.append(4.0)
 	_drip.append(1)
 
 
@@ -133,7 +134,7 @@ func _process(delta: float) -> void:
 		var y0 := _y[i]
 		var is_drip := _drip[i] == 1
 		if is_drip:
-			_vy[i] = minf(_vy[i] + 900.0 * delta, 330.0)
+			_vy[i] = minf(_vy[i] + 1800.0 * delta, 660.0)
 		var y1 := y0 + _vy[i] * delta
 		var x := _x[i] + (0.0 if is_drip else wind * (y1 - y0))
 		_x[i] = x
@@ -144,14 +145,14 @@ func _process(delta: float) -> void:
 			if not is_drip:
 				for s in shelters:
 					var r: Rect2 = s
-					if x >= r.position.x and x < r.end.x and y1 >= r.end.y - 4.0 and y0 < r.end.y:
+					if x >= r.position.x and x < r.end.x and y1 >= r.end.y - 8.0 and y0 < r.end.y:
 						if _rng.randf() < 0.25:
-							_splash(Vector2(x, r.end.y - 6.0), 1, 0.5)
+							_splash(Vector2(x, r.end.y - 12.0), 1, 0.5)
 						dead = true
 						break
 			if not dead:
 				for d in drums:
-					if d.try_catch(x, y0, y1, _depth[i], 1.0 if is_drip else _vy[i] / 320.0):
+					if d.try_catch(x, y0, y1, _depth[i], 1.0 if is_drip else _vy[i] / 640.0):
 						_splash(Vector2(x, d.surface_y()), 2 if not is_drip else 3, 0.8)
 						dead = true
 						break
@@ -166,14 +167,14 @@ func _process(delta: float) -> void:
 				dead = true
 		elif y1 >= _depth[i]:
 			dead = true
-		if dead or x < -40.0 or x > 360.0:
+		if dead or x < -80.0 or x > 720.0:
 			_remove(i)
 		else:
 			i += 1
 
 	var j := 0
 	while j < _sx.size():
-		_svy[j] += 260.0 * delta
+		_svy[j] += 520.0 * delta
 		_sx[j] += _svx[j] * delta
 		_sy[j] += _svy[j] * delta
 		_sl[j] -= delta
@@ -204,8 +205,8 @@ func _splash(p: Vector2, count: int, strength: float) -> void:
 	for k in count:
 		_sx.append(p.x)
 		_sy.append(p.y - 1.0)
-		_svx.append(_rng.randf_range(-28.0, 28.0) * strength)
-		_svy.append(-_rng.randf_range(30.0, 70.0) * strength)
+		_svx.append(_rng.randf_range(-56.0, 56.0) * strength)
+		_svy.append(-_rng.randf_range(60.0, 140.0) * strength)
 		_sl.append(_rng.randf_range(0.12, 0.28))
 
 
@@ -229,10 +230,10 @@ func _draw() -> void:
 			if l > 0.0:
 				# Drops passing the lantern catch its warm light.
 				col = Pal.LAMP1 if l > 0.55 else (Pal.LAMP2 if l > 0.25 else base.lerp(Pal.LAMP3, 0.5))
-			elif ln > 6.0 and (int(_x[i] * 7.0) % 5) == 0:
+			elif ln > 12.0 and (int(_x[i] * 7.0) % 5) == 0:
 				col = hi
 		if _drip[i] == 1:
-			draw_rect(Rect2(floorf(_x[i]), y, 1, 2), col if col != base else Pal.RAIN_HI)
+			draw_rect(Rect2(floorf(_x[i]), y, 1, 3), col if col != base else Pal.RAIN_HI)
 			continue
 		# A slanted 1px streak, drawn pixel-snapped.
 		var dx := -wind * ln

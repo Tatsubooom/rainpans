@@ -17,6 +17,9 @@ var stage: Stage
 
 func _ready() -> void:
 	layer = 10
+	# The UI is laid out on a 320x180 grid and drawn at 2x over the 640x360
+	# world, so its text stays the same size while the world gets finer.
+	scale = Vector2(UiKit.UI_SCALE, UiKit.UI_SCALE)
 	root = Control.new()
 	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.size = Vector2(320, 180)
@@ -139,7 +142,7 @@ func _layout() -> void:
 	info_line.position = Vector2(0, 168)
 	upgrades.position = Vector2(320 - 136, 18)
 	if stage:
-		stage.shelf_rect = Rect2(shelf.position, shelf.size) if shelf.visible else Rect2()
+		stage.shelf_rect = Rect2(shelf.position * UiKit.UI_SCALE, shelf.size * UiKit.UI_SCALE) if shelf.visible else Rect2()
 
 
 func _info(t: String) -> void:

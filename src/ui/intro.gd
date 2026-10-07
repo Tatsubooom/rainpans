@@ -25,6 +25,7 @@ var subtitle := "雨受けの屋上で"
 
 func _ready() -> void:
 	layer = 30
+	scale = Vector2(UiKit.UI_SCALE, UiKit.UI_SCALE)
 	_rect = ColorRect.new()
 	_rect.size = Vector2(320, 180)
 	_rect.mouse_filter = Control.MOUSE_FILTER_STOP

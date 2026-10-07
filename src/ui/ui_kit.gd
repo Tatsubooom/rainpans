@@ -2,6 +2,8 @@ class_name UiKit
 ## Shared pixel-UI helpers: the font and a few drawing primitives.
 
 const FONT_SIZE := 10
+## UI layers are scaled by this over the world viewport (see Hud).
+const UI_SCALE := 2
 static var _font: FontFile
 
 

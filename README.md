@@ -4,6 +4,8 @@
 空き缶やヘルメット、ドラム缶を好きな場所に置くと、当たった雨粒がそのまま音になります。
 集めた「響き」で雨脚を強め、新しい雨受けを見つけ、崩れた街の奥へ進みます。
 
+**▶ ブラウザで遊ぶ: https://tatsubooom.github.io/rainpans/**
+
 - 設計書: [docs/DESIGN.md](docs/DESIGN.md)
 - エンジン: Godot 4.3（GL Compatibility）
 - 解像度: 640×360（整数倍拡大）
@@ -13,8 +15,9 @@
 
 - **Windows**：`Rainpans-windows.zip` を展開して `Rainpans.exe` をダブルクリック（インストール不要・1 ファイル）。
   「PC を保護しました」と出たら「詳細情報」→「実行」。
-- **ブラウザ**：`Rainpans-web.zip` を任意の静的サーバーで配信するか、main に入ると GitHub Pages に自動公開
-  （リポジトリの Settings → Pages で Source を「GitHub Actions」にしておく）。
+- **ブラウザ**：https://tatsubooom.github.io/rainpans/ をひらくだけ（PC の Chrome / Edge / Firefox 推奨）。
+  main に push すると GitHub Actions で自動的に作り直して公開される
+  （Settings → Pages の Source は「GitHub Actions」）。
 - ビルドは Actions の「Release builds」を手動実行するか、`v*` タグを push すると zip が作られる
   （タグの場合は Release に添付）。手元では `tools/export.sh`。
 

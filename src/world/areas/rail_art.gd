@@ -27,6 +27,7 @@ static func build() -> Dictionary:
 		"puddles": [Rect2(150, 158, 40, 6), Rect2(226, 168, 50, 7), Rect2(30, 166, 34, 5), Rect2(262, 147, 24, 4)],
 		"smoke": [Vector2(286, 92), Vector2(40, 98)],
 		"floor_y": FLOOR_TOP,
+		"wander": [109.0, 120.0, 205.0],
 		"occluders": [
 			PackedVector2Array([Vector2(0, CANOPY_Y - 6), Vector2(CANOPY_X1, CANOPY_Y - 6), Vector2(CANOPY_X1, CANOPY_Y + 3), Vector2(0, CANOPY_Y + 3)]),
 		],

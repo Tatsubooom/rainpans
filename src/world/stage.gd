@@ -16,6 +16,7 @@ var reflection: Reflection
 var env_anim: EnvAnim
 var smoke: Smoke
 var critters: Critters
+var wanderer: Wanderer
 var drums_node: Node2D
 var lamp_light: PointLight2D
 var glow_light: PointLight2D
@@ -74,6 +75,9 @@ func build(id: String) -> void:
 	hmat.light_mode = CanvasItemMaterial.LIGHT_MODE_UNSHADED
 	horizon.material = hmat
 	add_child(horizon)
+	wanderer = Wanderer.new()
+	add_child(wanderer)
+	wanderer.setup(area)
 	smoke = Smoke.new()
 	smoke.steam = area.get("smoke_steam", false)
 	add_child(smoke)

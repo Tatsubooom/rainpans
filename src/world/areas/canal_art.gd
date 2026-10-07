@@ -34,6 +34,7 @@ static func build() -> Dictionary:
 		"smoke": [Vector2(282, 98)],
 		"smoke_steam": true,
 		"floor_y": FLOOR_TOP,
+		"wander": [115.0, 238.0, 286.0],
 		"blinks": [[Vector2(231, 79), Color("3aa060"), 5.0, 0.92]],
 		"trickles": [[Vector2(HOLE_X0 + 6, VAULT_Y - 6), 150.0], [Vector2(HOLE_X1 - 8, VAULT_Y - 6), 148.0]],
 		"ambient": Color(0.98, 0.86, 0.8),

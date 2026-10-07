@@ -32,6 +32,7 @@ static func build() -> Dictionary:
 		"puddles": [Rect2(36, 155, 48, 9), Rect2(112, 166, 56, 8), Rect2(98, 143, 30, 5), Rect2(150, 150, 22, 4), Rect2(204, 150, 36, 6)],
 		"smoke": [Vector2(146, 70)],
 		"floor_y": FLOOR_TOP,
+		"wander": [111.0, 152.0, 244.0],
 		# Shapes that stop the lantern's light (Celeste-style light hitting
 		# things): the tin overhang and the stacked boxes.
 		"occluders": [

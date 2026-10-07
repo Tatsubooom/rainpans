@@ -65,6 +65,8 @@ func _ready() -> void:
 		start_ending()
 	if _args.has("weather"):
 		stage.force_weather(_args.weather)
+	if _args.has("wanderer"):
+		stage.wanderer.force()
 	if _args.has("crow"):
 		stage.critters.debug_sit()
 	if _args.has("settings"):

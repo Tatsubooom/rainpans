@@ -63,6 +63,7 @@ static func build() -> Dictionary:
 		"puddles": [Rect2(56, 154, 30, 5), Rect2(150, 162, 26, 5), Rect2(214, 148, 24, 4)],
 		"smoke": [],
 		"floor_y": FLOOR_TOP,
+		"wander": [100.0, 30.0, 290.0],
 		"trickles": trickles,
 		"weeds": [[Vector2(20, 176), 6], [Vector2(110, 137), 5], [Vector2(244, 136), 6], [Vector2(306, 170), 5], [Vector2(170, 136), 4]],
 		"perches": [Vector2(160, 15), Vector2(96, 31)],

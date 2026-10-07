@@ -57,6 +57,8 @@ static func upscale(a: Dictionary, k: int) -> Dictionary:
 			for i in dst.size():
 				dst[i] = src[i / k] * k
 			out[key] = dst
+		elif key == "wander":
+			out[key] = [float(v[0]) * k, float(v[1]) * k, float(v[2]) * k]
 		elif key in ["broken", "trickles", "weeds"]:
 			# Lists of [position or number, number]: everything is geometry.
 			var arr := []

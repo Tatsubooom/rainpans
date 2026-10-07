@@ -1,0 +1,705 @@
+class_name Stage
+extends Node2D
+## The playable scene: layered backdrop, rain, drums, light and weather.
+## Also owns drum placement (drag from shelf, move, return to shelf).
+
+signal drum_struck(drum: Drum, amount: float)
+signal hover_changed(text: String)
+signal hand_strike(drum: Drum, vel: float)
+## A quiet line for the info bar when something happens (visitors, strikes).
+signal event_note(text: String)
+
+var area_id := "roof"
+var area: Dictionary
+var rain_far: Rain
+var rain: Rain
+var ripples: Ripples
+var reflection: Reflection
+var env_anim: EnvAnim
+var smoke: Smoke
+var critters: Critters
+var wanderer: Wanderer
+var drums_node: Node2D
+var lamp_light: PointLight2D
+var glow_light: PointLight2D
+var halo: Sprite2D
+var modulate_node: CanvasModulate
+var sky_sprite: Sprite2D
+var horizon: Sprite2D
+var mist: Array[Sprite2D] = []
+var fog_banks: Array[Sprite2D] = []
+var thunder: AudioStreamPlayer
+var crack: AudioStreamPlayer
+var bolt: Bolt
+var visitors: Visitors
+var _strike_k := 0.0 # close-strike flash, 1 -> 0
+var _next_strike := 300.0
+
+## set by HUD: rectangles (in viewport px) where dropping returns to shelf
+var shelf_rect := Rect2()
+
+var _drag: Drum = null
+var _drag_from_shelf := false
+var _drag_entry: Dictionary = {}
+var _drag_offset := Vector2.ZERO
+var _hover: Drum = null
+var _t := 0.0
+var _flash := 0.0
+var _next_flash := 25.0
+var _flicker := FastNoiseLite.new()
+var _mouse := Vector2(-100, -100) # last pointer position in world px
+var _press: Drum = null # pressed but not yet moved: a click strikes it
+var _press_at := Vector2.ZERO
+
+const PLAY_KEYS := [KEY_A, KEY_S, KEY_D, KEY_F, KEY_G, KEY_H, KEY_J, KEY_K, KEY_L, KEY_SEMICOLON,
+	KEY_1, KEY_2, KEY_3, KEY_4, KEY_5, KEY_6, KEY_7, KEY_8, KEY_9, KEY_0]
+
+
+func build(id: String) -> void:
+	for ch in get_children():
+		ch.queue_free()
+	mist.clear()
+	_drag = null
+	_hover = null
+	_press = null
+	area_id = id
+	area = AreaLibrary.build(id)
+	var layers: Dictionary = area.layers
+
+	modulate_node = CanvasModulate.new()
+	modulate_node.color = area.ambient
+	add_child(modulate_node)
+
+	sky_sprite = _layer(layers.sky)
+	# Dusk/dawn light low on the horizon (faded in by time of day).
+	horizon = Sprite2D.new()
+	horizon.texture = EnvFx.horizon_texture(640, 140)
+	horizon.centered = false
+	horizon.position = Vector2(0, 104)
+	horizon.modulate.a = 0.0
+	var hmat := CanvasItemMaterial.new()
+	hmat.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
+	hmat.light_mode = CanvasItemMaterial.LIGHT_MODE_UNSHADED
+	horizon.material = hmat
+	add_child(horizon)
+	wanderer = Wanderer.new()
+	add_child(wanderer)
+	wanderer.setup(area)
+	bolt = Bolt.new()
+	bolt.visible = false
+	var bmat := CanvasItemMaterial.new()
+	bmat.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
+	bmat.light_mode = CanvasItemMaterial.LIGHT_MODE_UNSHADED
+	bolt.material = bmat
+	add_child(bolt)
+	smoke = Smoke.new()
+	smoke.steam = area.get("smoke_steam", false)
+	add_child(smoke)
+	smoke.setup(area.smoke)
+	rain_far = Rain.new()
+	add_child(rain_far)
+	rain_far.rate = Game.rain_rate() * 1.2
+	rain_far.setup(area, Rain.FAR)
+	_mist(EnvFx.mist_texture(520, 52, 1, Pal.FOG1, 1.2), Vector2(-80, 184), 4.0)
+	_layer(layers.mid)
+	_mist(EnvFx.mist_texture(440, 36, 2, Pal.FOG0, 1.0), Vector2(240, 216), -2.8)
+	_layer(layers.floor)
+
+	# Puddles mirror everything drawn so far (sky, ruins, railing, lamp glow).
+	var mirror := PuddleMirror.new()
+	add_child(mirror)
+	mirror.setup(area)
+
+	ripples = Ripples.new()
+	add_child(ripples)
+	ripples.setup(area)
+	reflection = Reflection.new()
+	add_child(reflection)
+	reflection.setup(area)
+	env_anim = EnvAnim.new()
+	add_child(env_anim)
+	env_anim.setup(area)
+
+	drums_node = Node2D.new()
+	drums_node.y_sort_enabled = true
+	add_child(drums_node)
+
+	critters = Critters.new()
+	add_child(critters)
+	critters.setup(area)
+
+	rain = Rain.new()
+	rain.ripples = ripples
+	add_child(rain)
+	rain.rate = Game.rain_rate()
+	rain.setup(area, Rain.NEAR)
+
+	if area.has("water_y"):
+		var water := CanalWater.new()
+		water.y0 = area.water_y
+		add_child(water)
+	_layer(layers.front)
+	if area.has("shaft"):
+		# A shaft of grey daylight/moonlight through the hole in the vault.
+		var shaft := Sprite2D.new()
+		var sr: Rect2 = area.shaft
+		shaft.texture = EnvFx.shaft_texture(int(sr.size.x), int(sr.size.y))
+		shaft.centered = false
+		shaft.position = sr.position
+		var smat := CanvasItemMaterial.new()
+		smat.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
+		smat.light_mode = CanvasItemMaterial.LIGHT_MODE_UNSHADED
+		shaft.material = smat
+		add_child(shaft)
+	_mist(EnvFx.mist_texture(600, 28, 3, Pal.FOG0, 0.7), Vector2(0, 320), 1.6)
+	# Thick fog banks that only show on misty nights.
+	fog_banks.clear()
+	for i in 3:
+		var fb := Sprite2D.new()
+		fb.texture = EnvFx.mist_texture(720, 80, 20 + i, Pal.FOG1, 1.6)
+		fb.centered = false
+		fb.position = Vector2(-40 - i * 60, 140 + i * 56)
+		fb.modulate.a = 0.0
+		fb.set_meta("speed", 2.4 + i * 1.0)
+		fb.set_meta("x0", fb.position.x)
+		add_child(fb)
+		fog_banks.append(fb)
+
+	# Lantern: a banded warm light plus a tight bright core.
+	lamp_light = PointLight2D.new()
+	lamp_light.texture = EnvFx.light_texture(160, 8)
+	lamp_light.position = area.lamp
+	lamp_light.color = area.lamp_color
+	lamp_light.energy = 2.2
+	lamp_light.blend_mode = Light2D.BLEND_MODE_ADD
+	if area.has("occluders"):
+		lamp_light.shadow_enabled = true
+		lamp_light.shadow_color = Color(0, 0, 0, 0.0)
+		lamp_light.shadow_filter = Light2D.SHADOW_FILTER_NONE
+		for poly in area.occluders:
+			var occ := LightOccluder2D.new()
+			var op := OccluderPolygon2D.new()
+			op.polygon = poly
+			op.cull_mode = OccluderPolygon2D.CULL_DISABLED
+			occ.occluder = op
+			add_child(occ)
+	add_child(lamp_light)
+	glow_light = PointLight2D.new()
+	glow_light.texture = EnvFx.light_texture(32, 4)
+	glow_light.position = area.lamp
+	glow_light.color = Pal.LAMP1
+	glow_light.energy = 0.7
+	add_child(glow_light)
+
+	# Visible glow in the wet air around the lantern (additive, dithered bands).
+	halo = Sprite2D.new()
+	halo.texture = EnvFx.halo_texture(68, Pal.LAMP3)
+	halo.position = area.lamp
+	var mat := CanvasItemMaterial.new()
+	mat.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
+	mat.light_mode = CanvasItemMaterial.LIGHT_MODE_UNSHADED
+	halo.material = mat
+	add_child(halo)
+
+	# Secondary warm sources (lit windows etc.).
+	for wp in area.get("windows", []):
+		var wl := PointLight2D.new()
+		wl.texture = EnvFx.light_texture(56, 5)
+		wl.position = wp
+		wl.color = Pal.LAMP3
+		wl.energy = 1.1
+		add_child(wl)
+
+	thunder = AudioStreamPlayer.new()
+	thunder.stream = EnvFx.thunder_wav()
+	thunder.bus = "Ambience"
+	thunder.volume_db = -10.0
+	add_child(thunder)
+	crack = AudioStreamPlayer.new()
+	crack.stream = EnvFx.crack_wav()
+	crack.bus = "Ambience"
+	crack.volume_db = -4.0
+	add_child(crack)
+	visitors = Visitors.new()
+	add_child(visitors)
+	visitors.setup(self, area, id)
+	visitors.note.connect(func(t: String): event_note.emit(t))
+
+	_flicker.seed = 4
+	_flicker.frequency = 1.3
+	for e in Game.placed_in_area():
+		_spawn_drum(e)
+	apply_upgrades()
+
+
+## A close strike: bolt, white-out, an immediate crack of thunder, and every
+## drum on the floor rings with it. Pays a little bonus for the chord.
+func strike_lightning() -> void:
+	_next_strike = randf_range(240.0, 600.0)
+	_strike_k = 1.0
+	bolt.strike(randf_range(60.0, AreaLibrary.W - 60.0), float(area.floor_y) - 24.0)
+	crack.play()
+	var total := 0.0
+	var i := 0
+	for d in rain.drums:
+		var dr: Drum = d
+		if dr.ghost:
+			continue
+		total += float(dr.def.yield)
+		var loud := i < 8
+		i += 1
+		get_tree().create_timer(0.12 + randf() * 0.35).timeout.connect(func():
+			if is_instance_valid(dr):
+				dr.strike(randf_range(0.6, 1.0), false, loud))
+	if total > 0.0:
+		var bonus := Game.earn(total * 15.0)
+		event_note.emit("雷が落ちた。器がいっせいに鳴った　+%s" % Game.fmt(bonus))
+	else:
+		event_note.emit("近くに雷が落ちた")
+
+
+func _layer(img: Image) -> Sprite2D:
+	var s := Sprite2D.new()
+	s.texture = ImageTexture.create_from_image(img)
+	s.centered = false
+	add_child(s)
+	return s
+
+
+func _mist(tex: Texture2D, pos: Vector2, speed: float) -> void:
+	var s := Sprite2D.new()
+	s.texture = tex
+	s.centered = false
+	s.position = pos
+	s.set_meta("speed", speed)
+	s.set_meta("x0", pos.x)
+	add_child(s)
+	mist.append(s)
+
+
+func lamp_energy() -> float:
+	return 2.0 + 0.35 * Game.level("lamp")
+
+
+func apply_upgrades() -> void:
+	if rain == null:
+		return
+	rain.rate = Game.rain_rate()
+	rain_far.rate = Game.rain_rate() * 1.2
+	rain.drip_points = 1 + Game.level("drip")
+	# After the rain stops, a few drips linger from the edges.
+	rain.drip_rate = (0.55 + 0.1 * Game.level("drip") + 0.25 * Game.rain_level()) * lerpf(0.3, 1.0, Game.rain_scale)
+	lamp_light.energy = lamp_energy()
+	lamp_light.texture_scale = 1.0 + 0.15 * Game.level("lamp")
+	Synth.set_rain_level(Game.rain_level(), Game.rain_scale)
+	Synth.set_area_bed(area.get("bed", ""))
+	Synth.set_reverb_wet(0.28 + 0.06 * Game.level("reverb"), minf(0.98, float(area.get("reverb_room", 0.78)) + 0.03 * Game.level("reverb")))
+
+
+# ------------------------------------------------------------------- drums
+
+func degree_for(x: float) -> int:
+	# Left to right walks up the pentatonic scale.
+	return int(round(lerpf(-3.0, 4.0, clampf(x / AreaLibrary.W, 0.0, 1.0))))
+
+
+func _spawn_drum(entry: Dictionary) -> Drum:
+	var d := Drum.new()
+	d.setup(entry.id)
+	d.position = Vector2(entry.x, entry.y)
+	d.tune = int(entry.get("tune", 0))
+	d.degree = degree_for(entry.x) + d.tune
+	d.set_meta("entry", entry)
+	d.struck.connect(func(dr: Drum, amount: float): drum_struck.emit(dr, amount))
+	drums_node.add_child(d)
+	rain.drums.append(d)
+	_relight(d)
+	return d
+
+
+func _relight(d: Drum) -> void:
+	var f: Rect2 = area.floor
+	var far := clampf((f.end.y - d.position.y) / maxf(1.0, f.size.y), 0.0, 1.0)
+	d.relight(area.lamp, 180.0 + 24.0 * Game.level("lamp"), area.lamp_color, far)
+
+
+func drum_for_entry(entry: Dictionary) -> Drum:
+	for d in rain.drums:
+		if not d.ghost and d.get_meta("entry") == entry:
+			return d
+	return null
+
+
+func place_drum(id: String, pos: Vector2) -> Drum:
+	var entry := {"id": id, "x": pos.x, "y": pos.y}
+	Game.placed_in_area().append(entry)
+	return _spawn_drum(entry)
+
+
+func valid_spot(d: Drum, pos: Vector2) -> bool:
+	var f: Rect2 = area.floor
+	if not f.has_point(pos):
+		return false
+	var half := d.size().x / 2.0
+	if pos.x - half < 0.0 or pos.x + half > AreaLibrary.W:
+		return false
+	# No stacking: another drum at nearly the same depth must not overlap.
+	for o in rain.drums:
+		var other: Drum = o
+		if other == d:
+			continue
+		var oh := other.size().x / 2.0
+		if absf(other.position.y - pos.y) < 14.0 and absf(other.position.x - pos.x) < half + oh:
+			return false
+	return true
+
+
+## The placed drum that stops `d` from standing at `pos`, if any.
+func _blocking_drum(d: Drum, pos: Vector2) -> Drum:
+	var half := d.size().x / 2.0
+	for o in rain.drums:
+		var other: Drum = o
+		if other == d or other.ghost:
+			continue
+		var oh := other.size().x / 2.0
+		if absf(other.position.y - pos.y) < 14.0 and absf(other.position.x - pos.x) < half + oh:
+			return other
+	return null
+
+
+## Would `d` fit at `pos` if `gone` were taken away?
+func _fits_without(d: Drum, pos: Vector2, gone: Drum) -> bool:
+	var was := gone.ghost
+	gone.ghost = true
+	var drums_before: Array = rain.drums.duplicate()
+	rain.drums.erase(gone)
+	var ok := valid_spot(d, pos)
+	rain.drums = drums_before
+	gone.ghost = was
+	return ok
+
+
+func drum_at(p: Vector2) -> Drum:
+	var best: Drum = null
+	for d in rain.drums:
+		var dr: Drum = d
+		if dr.contains(p) and (best == null or dr.position.y > best.position.y):
+			best = dr
+	return best
+
+
+func begin_shelf_drag(id: String) -> void:
+	if _drag != null:
+		return
+	if Game.area_full():
+		hover_changed.emit("いっぱい（%d/%d）　置いてある雨受けの上に落とすと入れ替わる" % [Game.placed_in_area().size(), Game.capacity()])
+	var d := Drum.new()
+	d.setup(id)
+	d.ghost = true
+	d.position = _mouse.floor()
+	drums_node.add_child(d)
+	_drag = d
+	_drag_from_shelf = true
+	_drag_offset = Vector2.ZERO
+
+
+func _input(event: InputEvent) -> void:
+	if event is InputEventMouse:
+		_mouse = get_canvas_transform().affine_inverse() * event.position
+	if _press != null:
+		if event is InputEventMouseMotion and _mouse.distance_to(_press_at) >= 3.0:
+			_begin_move(_press, _press_at)
+			_press = null
+		elif event is InputEventMouseButton and not event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+			# A click without moving: play it.
+			_press.strike(0.85, true)
+			hand_strike.emit(_press, 0.85)
+			_press = null
+			get_viewport().set_input_as_handled()
+			return
+	if _drag == null:
+		return
+	if event is InputEventMouseMotion:
+		_update_drag()
+		get_viewport().set_input_as_handled()
+	elif event is InputEventMouseButton and not event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		_end_drag()
+		get_viewport().set_input_as_handled()
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	if _drag != null:
+		return
+	if event is InputEventMouseMotion:
+		var h := drum_at(_mouse)
+		if h != _hover:
+			if _hover:
+				_hover.hovered = false
+			_hover = h
+			if _hover:
+				_hover.hovered = true
+				hover_changed.emit("%s　鳴らす:クリック 移動:ドラッグ 音程:ホイール" % _hover.def.name)
+			else:
+				hover_changed.emit("")
+	if event is InputEventMouseButton and event.pressed:
+		var p := _mouse
+		var d := drum_at(p)
+		if d == null:
+			return
+		if event.button_index == MOUSE_BUTTON_RIGHT:
+			_remove_drum(d)
+			get_viewport().set_input_as_handled()
+		elif event.button_index == MOUSE_BUTTON_LEFT:
+			_press = d
+			_press_at = p
+			get_viewport().set_input_as_handled()
+		elif event.button_index == MOUSE_BUTTON_WHEEL_UP or event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
+			var step := 1 if event.button_index == MOUSE_BUTTON_WHEEL_UP else -1
+			d.tune = clampi(d.tune + step, -5, 5)
+			var entry: Dictionary = d.get_meta("entry")
+			entry["tune"] = d.tune
+			d.degree = degree_for(d.position.x) + d.tune
+			d.show_tuning()
+			d.strike(0.6, true)
+			get_viewport().set_input_as_handled()
+
+
+func _begin_move(d: Drum, from: Vector2) -> void:
+	_drag = d
+	_drag_from_shelf = false
+	_drag_offset = d.position - from
+	_drag_entry = d.get_meta("entry")
+	d.ghost = true
+	d.hovered = false
+	d.tex = ImageTexture.create_from_image(d.img)
+	_update_drag()
+
+
+## Keyboard as an instrument: home row then number row, left to right.
+func _unhandled_key_input(event: InputEvent) -> void:
+	if not (event is InputEventKey) or not event.pressed or event.echo:
+		return
+	var idx := PLAY_KEYS.find(event.keycode)
+	if idx < 0:
+		return
+	var sorted: Array = rain.drums.filter(func(x): return not x.ghost)
+	sorted.sort_custom(func(a, b): return a.position.x < b.position.x)
+	if idx < sorted.size():
+		sorted[idx].strike(0.85, true)
+		hand_strike.emit(sorted[idx], 0.85)
+		get_viewport().set_input_as_handled()
+
+
+func _update_drag_to(d: Drum) -> void:
+	d.position = (_mouse + _drag_offset).floor()
+
+
+func _update_drag() -> void:
+	var p := (_mouse + _drag_offset).floor()
+	_drag.position = p
+	var ok := valid_spot(_drag, p) and not (_drag_from_shelf and Game.area_full())
+	if _drag_from_shelf and not ok:
+		# Hovering a different drum means "swap": show it as valid.
+		var under := _blocking_drum(_drag, p)
+		ok = under != null and under.id != _drag.id and _fits_without(_drag, p, under)
+	_drag.valid = ok and not shelf_rect.has_point(_mouse)
+
+
+func _end_drag() -> void:
+	var d := _drag
+	_drag = null
+	var mouse := _mouse
+	_update_drag_to(d)
+	var p := d.position
+	var over_shelf := shelf_rect.has_point(mouse)
+	if _drag_from_shelf:
+		d.queue_free()
+		if over_shelf:
+			return
+		# Dropped onto a drum that is already there: swap them (the old one
+		# goes back to the shelf). This is how a full place gets upgraded.
+		var under := _blocking_drum(d, p)
+		if under != null and under.id != d.id and _fits_without(d, p, under):
+			_remove_drum(under)
+		if valid_spot(d, p) and not Game.area_full():
+			place_drum(d.id, p)
+			Synth.play(d.id, degree_for(p.x), p, 0.5, -1)
+		return
+	if over_shelf:
+		_remove_drum(d)
+		return
+	if valid_spot(d, p):
+		_drag_entry.x = p.x
+		_drag_entry.y = p.y
+	d.position = Vector2(_drag_entry.x, _drag_entry.y)
+	d.degree = degree_for(d.position.x) + d.tune
+	_relight(d)
+	d.ghost = false
+	d.valid = true
+
+
+func _remove_drum(d: Drum) -> void:
+	var entry: Dictionary = d.get_meta("entry")
+	Game.placed_in_area().erase(entry)
+	rain.drums.erase(d)
+	if _hover == d:
+		_hover = null
+		hover_changed.emit("")
+	d.queue_free()
+	Game.changed.emit()
+
+
+# ----------------------------------------------------------------- weather
+
+## Time of day keys: phase (0..1) -> ambient tint, horizon glow, lamp scale.
+const DAY_KEYS := [
+	[0.00, Color(1.00, 0.80, 0.84), 0.9, 0.7], # dusk
+	[0.18, Color(0.92, 0.95, 1.00), 0.0, 1.0], # night
+	[0.45, Color(0.74, 0.80, 0.96), 0.0, 1.1], # deep night
+	[0.70, Color(0.90, 0.92, 1.04), 0.25, 0.9], # before dawn
+	[0.80, Color(1.08, 1.00, 1.04), 1.0, 0.45], # dawn
+	[0.90, Color(1.15, 1.15, 1.18), 0.2, 0.25], # grey morning rain
+	[1.00, Color(1.00, 0.80, 0.84), 0.9, 0.7],
+]
+const DAY_LENGTH := 1440.0 # seconds of play for one full cycle
+
+var _distant_t := 25.0
+var _wind := -0.08
+var _wind_target := -0.08
+var _gust := 0.0
+var _next_gust := 40.0
+var _wind_x := 0.0
+var _day_glow := 0.0
+var _day_lamp := 1.0
+
+## Weather moods drift every few minutes. They change only the look and
+## sound, never the economy.
+const WEATHERS := ["rain", "mist", "storm"]
+var weather := "rain"
+var _weather_t := 240.0
+var _mist_k := 0.0 # 0..1 how foggy
+var _storm_k := 0.0 # 0..1 how stormy
+
+
+## Screenshot/debug hook: jump straight into a weather mood.
+func force_weather(w: String) -> void:
+	weather = w
+	_weather_t = 9999.0
+	_mist_k = 1.0 if w == "mist" else 0.0
+	_storm_k = 1.0 if w == "storm" else 0.0
+
+
+func day_phase() -> float:
+	if Game.debug_phase >= 0.0:
+		return Game.debug_phase
+	if Game.level("time") <= 0:
+		return 0.25
+	return fmod(Game.play_time / DAY_LENGTH, 1.0)
+
+
+func _day_sample(phase: float) -> Array:
+	for i in DAY_KEYS.size() - 1:
+		var a: Array = DAY_KEYS[i]
+		var b: Array = DAY_KEYS[i + 1]
+		if phase >= a[0] and phase <= b[0]:
+			var t: float = (phase - a[0]) / (b[0] - a[0])
+			t = t * t * (3.0 - 2.0 * t)
+			return [(a[1] as Color).lerp(b[1], t), lerpf(a[2], b[2], t), lerpf(a[3], b[3], t)]
+	return [DAY_KEYS[1][1], 0.0, 1.0]
+
+
+func _process(delta: float) -> void:
+	_t += delta
+	var day := _day_sample(day_phase())
+	var amb: Color = area.ambient * (day[0] as Color)
+	_day_glow = day[1]
+	_day_lamp = day[2]
+	if horizon:
+		# Dusk burns rose; dawn comes in pale gold and grey-blue.
+		var ph := day_phase()
+		var tint := Color(1.0, 0.85, 0.8) if ph < 0.5 else Color(0.95, 1.1, 1.25)
+		horizon.modulate = Color(tint, _day_glow)
+
+	# Lantern flicker: slow breathing plus the odd gutter.
+	var f := _flicker.get_noise_1d(_t * 10.0)
+	glow_light.energy = (0.65 + f * 0.25) * _day_lamp
+	lamp_light.energy = lamp_energy() * (0.93 + f * 0.08) * _day_lamp
+	halo.modulate.a = (0.9 + f * 0.1) * clampf(_day_lamp, 0.3, 1.0)
+	reflection.energy = clampf(_day_lamp, 0.0, 1.0) * (0.85 + f * 0.15)
+
+	# Wind: a slow wander, with an occasional gust that leans the rain over
+	# and sets the pipe chimes ringing.
+	_weather_t -= delta
+	if _weather_t <= 0.0:
+		# Mostly plain rain; mist and storms come and go.
+		var r := randf()
+		weather = "mist" if r < 0.25 else ("storm" if r < 0.42 else "rain")
+		_weather_t = randf_range(240.0, 540.0)
+	_mist_k = move_toward(_mist_k, 1.0 if weather == "mist" else 0.0, delta / 30.0)
+	_storm_k = move_toward(_storm_k, 1.0 if weather == "storm" else 0.0, delta / 30.0)
+	_next_gust -= delta * (1.0 + _storm_k * 3.0)
+	if _next_gust <= 0.0:
+		_next_gust = randf_range(45.0, 120.0)
+		_gust = 1.0
+	_gust = maxf(0.0, _gust - delta / 7.0)
+	_wind_target = -0.06 - _storm_k * 0.08 + _flicker.get_noise_1d(_t * 0.4 + 50.0) * (0.08 + _storm_k * 0.08) - sin(_gust * PI) * 0.22
+	_wind = lerpf(_wind, _wind_target, minf(1.0, delta * 1.5))
+	rain.wind = _wind
+	rain_far.wind = _wind
+	smoke.wind = -6.0 + _wind * 60.0
+	env_anim.wind = _wind
+	env_anim.rain_level = Game.rain_level() * Game.rain_scale
+	_wind_x += delta * (1.0 - _wind * 10.0)
+	if _gust > 0.3 and randf() < delta * 3.0 * _gust:
+		for d in rain.drums:
+			var dr: Drum = d
+			if dr.id == "pipes" and not dr.ghost:
+				dr.strike(randf_range(0.15, 0.4))
+	for fb in fog_banks:
+		fb.modulate.a = _mist_k
+		var fsp: float = fb.get_meta("speed")
+		fb.position.x = floorf(wrapf(float(fb.get_meta("x0")) + _wind_x * fsp, -720.0, 80.0))
+	for m in mist:
+		var sp: float = m.get_meta("speed")
+		var x0: float = m.get_meta("x0")
+		var tw: float = m.texture.get_width()
+		m.position.x = floorf(wrapf(x0 + _wind_x * sp, -tw, AreaLibrary.W + tw * 0.25))
+
+	# Far-off sounds of the ruined city, every half minute or so.
+	_distant_t -= delta
+	if _distant_t <= 0.0:
+		_distant_t = randf_range(22.0, 55.0)
+		var kinds: Array = area.get("distant", ["creak", "clank", "plink", "groan"])
+		var kind: String = kinds[randi() % kinds.size()]
+		Synth.play_distant(kind, Vector2(randf_range(-200.0, 840.0), 120.0), randf_range(-24.0, -17.0))
+
+	# Distant lightning only in heavier rain.
+	if Game.rain_level() > 0.55 or _storm_k > 0.5:
+		_next_flash -= delta * (1.0 + _storm_k * 2.0)
+		if _next_flash <= 0.0:
+			_next_flash = randf_range(30.0, 90.0)
+			_flash = 1.0
+			get_tree().create_timer(randf_range(1.2, 3.0)).timeout.connect(func():
+				if is_instance_valid(thunder):
+					thunder.play())
+	# Now and then, in a storm, a strike lands close by.
+	if _storm_k > 0.5 or Game.rain_level() > 0.85:
+		_next_strike -= delta * (1.0 + _storm_k)
+		if _next_strike <= 0.0:
+			strike_lightning()
+	var flash_on := false
+	if _flash > 0.0:
+		_flash = maxf(0.0, _flash - delta * 2.5)
+		flash_on = _flash > 0.75 or (_flash > 0.35 and _flash < 0.5)
+	# Mist lifts and greys the darks a little; storms deepen them.
+	amb = amb.lerp(Color(1.05, 1.08, 1.12), _mist_k * 0.25).lerp(Color(0.8, 0.84, 0.95), _storm_k * 0.3)
+	modulate_node.color = amb.lerp(Color(1.25, 1.3, 1.45), 0.5 if flash_on else 0.0)
+	var strike_on := false
+	if _strike_k > 0.0:
+		_strike_k = maxf(0.0, _strike_k - delta * 1.6)
+		# Two hard pulses, then a white-blue afterglow sinking back.
+		strike_on = _strike_k > 0.9 or (_strike_k > 0.7 and _strike_k < 0.8)
+		var glow := 1.0 if strike_on else _strike_k * 0.5
+		modulate_node.color = modulate_node.color.lerp(Color(1.7, 1.75, 1.95), glow)
+	rain.flash = 1.0 if strike_on else (0.6 if flash_on else 0.0)
+	rain_far.flash = rain.flash

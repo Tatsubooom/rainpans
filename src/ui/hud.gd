@@ -304,10 +304,21 @@ class TopBar:
 
 class InfoLine:
 	extends Control
+	## One line at the bottom; longer text wraps to two lines, and anything
+	## longer still is shown two lines at a time, typed out page by page.
+	const MAX_W := 304.0
+	const LINES := 2
+	const PAGE_SECS := 4.5
+	const TYPE_RATE := 40.0 # characters per second
 	var _text := ""
 	var hint := "" # persistent onboarding line, shown when nothing else is
 	var _toast := ""
 	var _toast_t := 0.0
+	var _soft := false
+	var _quiet := 0.0
+	var _shown := "" # what the wrap cache below belongs to
+	var _lines := PackedStringArray()
+	var _page_t := 0.0
 
 	func _ready() -> void:
 		size = Vector2(320, 12)
@@ -318,14 +329,13 @@ class InfoLine:
 		_text = t
 		queue_redraw()
 
-	var _soft := false
-	var _quiet := 0.0
-
 	func toast(t: String, secs := 4.0, soft := false) -> void:
 		_toast = t
-		_toast_t = secs
 		_soft = soft
 		_quiet = 0.0
+		# Give long lines time to be read: every extra page adds a page's worth.
+		var pages := ceili(float(UiKit.wrap(t, MAX_W).size()) / LINES)
+		_toast_t = secs + (pages - 1) * PAGE_SECS
 		queue_redraw()
 
 	## True when nothing has been shown for a little while.
@@ -333,11 +343,14 @@ class InfoLine:
 		return _toast_t <= 0.0 and _quiet > 6.0 and hint == ""
 
 	func _process(delta: float) -> void:
+		_page_t += delta
 		if _toast_t > 0.0:
 			_toast_t -= delta
 			queue_redraw()
 		else:
 			_quiet += delta
+		if _lines.size() > 1:
+			queue_redraw()
 
 	func _draw() -> void:
 		var t := _text
@@ -350,9 +363,32 @@ class InfoLine:
 		if t == "" and hint != "":
 			t = hint
 			col = Pal.LAMP1 if int(Time.get_ticks_msec() / 900) % 2 == 0 else Pal.LAMP2
-		if t == "":
+		if t != _shown:
+			_shown = t
+			_lines = UiKit.wrap(t, MAX_W) if t != "" else PackedStringArray()
+			_page_t = 0.0
+		if _lines.is_empty():
 			return
-		var tw := UiKit.text_width(t)
-		var x := floorf((320.0 - tw) / 2.0)
-		UiKit.dither_strip(self, Rect2(x - 4, 0, tw + 8, 12), Pal.INK)
-		UiKit.text(self, Vector2(x, 1), t, col)
+		var pages := ceili(float(_lines.size()) / LINES)
+		var page := int(_page_t / PAGE_SECS) % pages
+		var rows := _lines.slice(page * LINES, page * LINES + LINES)
+		# Type each new page out; a single short line just appears.
+		var budget := 1 << 20
+		if _lines.size() > 1:
+			budget = int(fmod(_page_t, PAGE_SECS) * TYPE_RATE)
+		var y := -12.0 * (rows.size() - 1)
+		var wmax := 0.0
+		for r in rows:
+			wmax = maxf(wmax, UiKit.text_width(r))
+		var x := floorf((320.0 - wmax) / 2.0)
+		UiKit.dither_strip(self, Rect2(x - 4, y, wmax + 8, 12 * rows.size()), Pal.INK)
+		for r in rows:
+			var shown: String = r.substr(0, maxi(0, budget))
+			budget -= r.length()
+			var rx := x if rows.size() > 1 else floorf((320.0 - UiKit.text_width(r)) / 2.0)
+			UiKit.text(self, Vector2(rx, y + 1), shown, col)
+			y += 12.0
+		if pages > 1:
+			# Page pips at the right end: which part of the text this is.
+			for i in pages:
+				draw_rect(Rect2(x + wmax + 6, -12.0 * (rows.size() - 1) + 2 + i * 3, 2, 2), col if i == page else Pal.NIGHT3)

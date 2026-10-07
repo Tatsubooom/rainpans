@@ -27,6 +27,7 @@ func _ready() -> void:
 	_test_disk_save()
 	_test_distant()
 	_test_visitors()
+	_test_wrap()
 	print("%d checks, %d failures" % [checks, failures])
 	get_tree().quit(1 if failures > 0 else 0)
 
@@ -202,3 +203,16 @@ func _test_visitors() -> void:
 			check(Visitors.ARRIVE.has(k) and Visitor.SPEED.has(k), "visitor known: " + k)
 	var wav := EnvFx.crack_wav()
 	check(wav.data.size() > 50000, "thunder crack generated")
+
+
+func _test_wrap() -> void:
+	var long := "夜をすすめる　時間が流れはじめる。夕暮れから夜明けまで。（これ以上はない）"
+	var lines := UiKit.wrap(long, 304.0)
+	check(lines.size() >= 2, "long line wraps")
+	var joined := ""
+	for l in lines:
+		check(UiKit.text_width(l) <= 304.0, "wrapped line fits: " + l)
+		check(not (l[0] in "。、）」"), "no line starts with closing punctuation")
+		joined += l
+	check(joined.replace("　", "").replace(" ", "") == long.replace("　", "").replace(" ", ""), "wrap keeps every character")
+	check(UiKit.wrap("短い", 304.0).size() == 1, "short line stays one line")

@@ -31,6 +31,33 @@ static func text_width(s: String) -> float:
 	return font().get_string_size(s, HORIZONTAL_ALIGNMENT_LEFT, -1, FONT_SIZE).x
 
 
+## Japanese-aware line wrap: breaks after 。、 or a space when one is near
+## the end of the line, and never starts a line with closing punctuation.
+static func wrap(s: String, max_w: float) -> PackedStringArray:
+	var out := PackedStringArray()
+	var no_start := "。、，．）」』！？ー…・"
+	var soft := "。、　 ）」』"
+	var line := ""
+	for ch in s:
+		if text_width(line + ch) <= max_w or line == "":
+			line += ch
+			continue
+		var cut := line.length()
+		if ch in no_start:
+			# Carry the last character down with the punctuation instead.
+			cut = line.length() - 1
+		else:
+			for i in range(line.length() - 1, int(line.length() * 0.55), -1):
+				if line[i] in soft:
+					cut = i + 1
+					break
+		out.append(line.substr(0, cut).strip_edges())
+		line = line.substr(cut).strip_edges(true, false) + ch
+	if line.strip_edges() != "":
+		out.append(line.strip_edges())
+	return out
+
+
 static func panel(ci: CanvasItem, r: Rect2, fill := Pal.NIGHT0, border := Pal.NIGHT3) -> void:
 	ci.draw_rect(r, fill)
 	ci.draw_rect(Rect2(r.position, Vector2(r.size.x, 1)), border)

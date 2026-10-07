@@ -70,6 +70,8 @@ func _ready() -> void:
 		stage.wanderer.force()
 	if _args.has("visitor"):
 		stage.visitors.spawn(_args.visitor, true)
+	if _args.has("toast"):
+		hud.toast(_args.toast)
 	if _args.has("strike"):
 		stage.strike_lightning()
 	if _args.has("crow"):

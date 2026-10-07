@@ -22,6 +22,7 @@ static var CON2 := Color("2a2e35")
 static var CON3 := Color("383d45")
 static var CON4 := Color("4b5059")
 static var CON5 := Color("626873")
+static var CON6 := Color("7d838e")
 
 # rust / earth
 static var RUST0 := Color("24160f")
@@ -44,3 +45,13 @@ static var LAMP3 := Color("d1743a")
 static var LAMP4 := Color("8f4527")
 
 static var BONE := Color("e8e1d2")
+
+# extras for finer detail
+static var WET := Color("2b3546") # rain-dark concrete with a blue sheen
+static var WOOD0 := Color("2a1c14")
+static var WOOD1 := Color("43301f")
+static var WOOD2 := Color("5f452c")
+static var WOOD3 := Color("7d5d3b")
+static var CLOTH0 := Color("3a2b3c")
+static var CLOTH1 := Color("5c4660")
+static var CLOTH2 := Color("8a6f86")

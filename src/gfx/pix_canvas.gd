@@ -102,6 +102,42 @@ func line(x0: int, y0: int, x1: int, y1: int, c: Color) -> void:
 			y0 += sy
 
 
+## Ellipse outline (one pixel thick).
+func ring(cx: int, cy: int, rx: float, ry: float, c: Color) -> void:
+	var steps := int(maxf(rx, ry) * 8.0)
+	var last := Vector2i(-99999, -99999)
+	for i in steps:
+		var t := TAU * i / steps
+		var p := Vector2i(roundi(cx + cos(t) * rx), roundi(cy + sin(t) * ry))
+		if p != last:
+			px(p.x, p.y, c)
+			last = p
+
+
+## A noisy fill: picks from `ramp` by fractal noise, dithered between steps.
+func noise_rect(x: int, y: int, rw: int, rh: int, ramp: Array, seed: int, freq := 0.08, sy := 1.0) -> void:
+	var n := FastNoiseLite.new()
+	n.seed = seed
+	n.frequency = freq
+	n.fractal_octaves = 3
+	var steps := ramp.size() - 1
+	for yy in range(rh):
+		for xx in range(rw):
+			var v := clampf(n.get_noise_2d(xx + x, (yy + y) * sy) * 0.6 + 0.5, 0.0, 0.999) * steps
+			var i := int(v)
+			var f := v - i
+			var col: Color = ramp[mini(i + 1, steps)] if f > bayer(x + xx, y + yy) else ramp[i]
+			px(x + xx, y + yy, col)
+
+
+## Copies `c` over pixels already of colour `match` only (for masked detail).
+func recolor(x: int, y: int, rw: int, rh: int, match_col: Color, c: Color, t := 1.0) -> void:
+	for yy in range(maxi(y, 0), mini(y + rh, h)):
+		for xx in range(maxi(x, 0), mini(x + rw, w)):
+			if img.get_pixel(xx, yy) == match_col and t > bayer(xx, yy):
+				img.set_pixel(xx, yy, c)
+
+
 func circle(cx: int, cy: int, r: float, c: Color) -> void:
 	var ir := int(ceil(r))
 	for y in range(-ir, ir + 1):

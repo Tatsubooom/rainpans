@@ -3,37 +3,59 @@ extends Node2D
 ## Small life: moths circling the lantern, and a crow that sometimes lands on
 ## the railing to wait out the rain with you.
 
+## Crow frames at full resolution. o ink, 1 blue-black sheen, 2 wet
+## highlight, x eye, b beak, f feet.
 const CROW_SIT := [
-	"..oo...",
-	".oxoo..",
-	"o1oooob",
-	"o11ooo.",
-	".o1oo..",
-	"..o.o..",
+	"....oooo......",
+	"...o12ooo.....",
+	"..oxo1oooo....",
+	".bbooooooo....",
+	"...oo11oooo...",
+	"...o1122oooo..",
+	"...o11222oooo.",
+	"....o1111ooooo",
+	".....oooooo.oo",
+	"......f..f....",
+	"......f..f....",
 ]
 const CROW_PECK := [
-	".......",
-	"..oo...",
-	".o1ooo.",
-	"bxo11oo",
-	"..oooo.",
-	"..o.o..",
+	"..............",
+	"..............",
+	"....oooo......",
+	"...o12oooooo..",
+	"..oxo11222ooo.",
+	".bbo111122oooo",
+	"bb.oo1111ooooo",
+	".....ooooooo.o",
+	"......o..o....",
+	"......f..f....",
+	"......f..f....",
 ]
 const CROW_FLY_A := [
-	"1.....1",
-	".o...o.",
-	"..ooo..",
-	"..oxob.",
-	".......",
-	".......",
+	"1o..........o1",
+	".1o........o1.",
+	"..1oo....oo1..",
+	"...oooooooo...",
+	"..oxooooooooo.",
+	".bbooo1122ooo.",
+	".....ooooo....",
+	"..............",
+	"..............",
+	"..............",
+	"..............",
 ]
 const CROW_FLY_B := [
-	".......",
-	"..ooo..",
-	"1ooxoob",
-	".......",
-	".......",
-	".......",
+	"..............",
+	"..............",
+	"..............",
+	"....oooooo....",
+	"..oxooooooooo.",
+	".bbooo1122ooo.",
+	"..1oooooooo1..",
+	".1oo......oo1.",
+	"1o..........o1",
+	"..............",
+	"..............",
 ]
 
 var lamp := Vector2(-999, -999)
@@ -56,12 +78,10 @@ func setup(a: Dictionary) -> void:
 	_moths.clear()
 	for i in 3:
 		_moths.append([randf() * TAU, randf_range(10.0, 22.0), randf_range(1.5, 3.2), randf() * 10.0])
-	var key := {"o": Pal.INK, "x": Pal.FOG2, "b": Pal.CON4, "1": Pal.NIGHT4}
+	var key := {"o": Pal.INK, "x": Pal.FOG2, "b": Pal.CON4, "1": Pal.NIGHT3, "2": Pal.FOG0, "f": Pal.CON3}
 	for k in ["sit", "peck", "fa", "fb"]:
 		var rows: Array = {"sit": CROW_SIT, "peck": CROW_PECK, "fa": CROW_FLY_A, "fb": CROW_FLY_B}[k]
-		var img := PixCanvas.grid(rows, key)
-		img.resize(img.get_width() * 2, img.get_height() * 2, Image.INTERPOLATE_NEAREST)
-		_tex[k] = ImageTexture.create_from_image(img)
+		_tex[k] = ImageTexture.create_from_image(PixCanvas.grid(rows, key))
 	_crow_wait = randf_range(20.0, 60.0)
 
 
@@ -127,7 +147,7 @@ func _draw() -> void:
 	elif _peck > 0.0:
 		key = "peck"
 	var tex: ImageTexture = _tex[key]
-	var pos := (_crow_pos - Vector2(6, 12)).floor()
+	var pos := (_crow_pos - Vector2(7, 11)).floor()
 	if _crow_flip:
 		draw_texture_rect(tex, Rect2(pos + Vector2(tex.get_width(), 0), Vector2(-tex.get_width(), tex.get_height())), false)
 	else:

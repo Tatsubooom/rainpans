@@ -11,7 +11,10 @@ static func light_texture(radius: int, bands := 5) -> ImageTexture:
 			var d := Vector2(x + 0.5 - radius, y + 0.5 - radius).length() / radius
 			if d >= 1.0:
 				continue
-			var v := pow(1.0 - d, 1.6)
+			# A broad plateau near the source, then a quick fall-off: makes
+			# lit things read as clearly lit against the dark.
+			var v := clampf(1.15 - d * 1.15, 0.0, 1.0)
+			v = v * v * (3.0 - 2.0 * v)
 			# Quantise to bands, dithering across each band edge.
 			var q := v * bands
 			var lo := floorf(q)
@@ -72,6 +75,22 @@ static func shaft_texture(w: int, h: int) -> ImageTexture:
 			var q := floorf(v * 3.0 + PixCanvas.bayer(x, y) * 0.999) / 3.0
 			if q > 0.0:
 				c.img.set_pixel(x, y, Color(0.16 * q, 0.2 * q, 0.26 * q, 1.0))
+	return c.texture()
+
+
+## A pool of lamplight on the floor: a flattened ellipse in hard dithered
+## bands (additive), so the ground under a lamp reads clearly lit.
+static func pool_texture(rx: int, ry: int, color: Color) -> ImageTexture:
+	var c := PixCanvas.new(rx * 2, ry * 2, Color(0, 0, 0, 1))
+	for y in ry * 2:
+		for x in rx * 2:
+			var d := Vector2((x + 0.5 - rx) / rx, (y + 0.5 - ry) / ry).length()
+			if d >= 1.0:
+				continue
+			var v := pow(1.0 - d, 1.3)
+			var q := floorf(v * 5.0 + PixCanvas.bayer(x, y) * 0.999) / 5.0
+			if q > 0.0:
+				c.img.set_pixel(x, y, Color(color.r * q * 0.42, color.g * q * 0.42, color.b * q * 0.42, 1.0))
 	return c.texture()
 
 

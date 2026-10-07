@@ -20,6 +20,7 @@ var drums_node: Node2D
 var lamp_light: PointLight2D
 var glow_light: PointLight2D
 var halo: Sprite2D
+var pool: Sprite2D
 var modulate_node: CanvasModulate
 var sky_sprite: Sprite2D
 var horizon: Sprite2D
@@ -167,6 +168,17 @@ func build(id: String) -> void:
 	halo.material = mat
 	add_child(halo)
 
+	# Lamplight pooled on the floor below the lantern.
+	pool = Sprite2D.new()
+	pool.texture = EnvFx.pool_texture(110, 26, Pal.LAMP2)
+	pool.position = Vector2(area.lamp.x, float(area.get("pool_y", area.floor_y + 40)))
+	var pmat := CanvasItemMaterial.new()
+	pmat.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
+	pmat.light_mode = CanvasItemMaterial.LIGHT_MODE_UNSHADED
+	pool.material = pmat
+	add_child(pool)
+	move_child(pool, drums_node.get_index())
+
 	# Secondary warm sources (lit windows etc.).
 	for wp in area.get("windows", []):
 		var wl := PointLight2D.new()
@@ -209,7 +221,7 @@ func _mist(tex: Texture2D, pos: Vector2, speed: float) -> void:
 
 
 func lamp_energy() -> float:
-	return 2.0 + 0.35 * Game.level("lamp")
+	return 2.6 + 0.4 * Game.level("lamp")
 
 
 func apply_upgrades() -> void:
@@ -221,7 +233,7 @@ func apply_upgrades() -> void:
 	# After the rain stops, a few drips linger from the edges.
 	rain.drip_rate = (0.55 + 0.1 * Game.level("drip") + 0.25 * Game.rain_level()) * lerpf(0.3, 1.0, Game.rain_scale)
 	lamp_light.energy = lamp_energy()
-	lamp_light.texture_scale = 1.0 + 0.15 * Game.level("lamp")
+	lamp_light.texture_scale = 1.25 + 0.15 * Game.level("lamp")
 	Synth.set_rain_level(Game.rain_level(), Game.rain_scale)
 	Synth.set_area_bed(area.get("bed", ""))
 	Synth.set_reverb_wet(0.28 + 0.06 * Game.level("reverb"), minf(0.98, float(area.get("reverb_room", 0.78)) + 0.03 * Game.level("reverb")))
@@ -554,6 +566,7 @@ func _process(delta: float) -> void:
 	lamp_light.energy = lamp_energy() * (0.93 + f * 0.08) * _day_lamp
 	halo.modulate.a = (0.9 + f * 0.1) * clampf(_day_lamp, 0.3, 1.0)
 	reflection.energy = clampf(_day_lamp, 0.0, 1.0) * (0.85 + f * 0.15)
+	pool.modulate.a = clampf(_day_lamp, 0.0, 1.0) * (0.9 + f * 0.1)
 
 	# Wind: a slow wander, with an occasional gust that leans the rain over
 	# and sets the pipe chimes ringing.

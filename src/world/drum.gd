@@ -87,7 +87,7 @@ func top_left() -> Vector2:
 
 ## Y of the catching surface (the open top / upper face).
 func surface_y() -> float:
-	return top_left().y + 4.0
+	return top_left().y + float(def.get("mouth", 2)) * DrumDefs.pixel_scale(id)
 
 
 func contains(p: Vector2) -> bool:

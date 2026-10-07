@@ -22,7 +22,9 @@ static var DEFS := {
 		"noise": [0.35, 0.012],
 		"ramp": ["3a3f48", "5b626d", "8c94a0", "b9c0c9", "e4e8ec"],
 		"accent": ["8f3a2a", "c4683e"],
-		"lid": [1, 6], # x range (inclusive) of the open top, local px
+		"hires": true,
+		"lid": [2, 13],
+		"mouth": 3, # x range (inclusive) of the open top, local px
 		"sprite": [
 			".oooooo.",
 			"o455432o",
@@ -48,7 +50,9 @@ static var DEFS := {
 		"noise": [0.25, 0.02],
 		"ramp": ["24334a", "34506a", "4c7290", "6f97b0", "a7c6d4"],
 		"accent": ["1a2230", "88a9bb"],
-		"lid": [1, 10],
+		"hires": true,
+		"lid": [3, 22],
+		"mouth": 10,
 		"sprite": [
 			"...oooooo...",
 			"..o......o..",
@@ -78,7 +82,9 @@ static var DEFS := {
 		"noise": [0.18, 0.01],
 		"ramp": ["2d3324", "47513a", "66734f", "8c9a6a", "c3cc98"],
 		"accent": ["1c2016", "e8e1d2"],
-		"lid": [4, 11],
+		"hires": true,
+		"lid": [8, 25],
+		"mouth": 3,
 		"sprite": [
 			".....oooooo.....",
 			"...oo554433oo...",
@@ -102,7 +108,9 @@ static var DEFS := {
 		"noise": [0.12, 0.008],
 		"ramp": ["3b3836", "5f5a55", "8b847a", "b8afa1", "e6dfd2"],
 		"accent": ["2a1a12", "4a2e1e"],
-		"lid": [1, 9],
+		"hires": true,
+		"lid": [2, 23],
+		"mouth": 3,
 		"sprite": [
 			".ooooooooo.......",
 			"o555444332o......",
@@ -125,7 +133,9 @@ static var DEFS := {
 		"noise": [0.08, 0.004],
 		"ramp": ["1d3a34", "2c5a4d", "3f7d69", "6aa88e", "c9efe0"],
 		"accent": ["0f1f1c", "f4fff9"],
-		"lid": [2, 3],
+		"hires": true,
+		"lid": [4, 7],
+		"mouth": 1,
 		"sprite": [
 			"..oo..",
 			".o4ao.",
@@ -152,7 +162,9 @@ static var DEFS := {
 		"noise": [0.3, 0.03],
 		"ramp": ["2a1610", "4a2618", "6e3a22", "9a5530", "c88050"],
 		"accent": ["1c0f0a", "d8a070"],
-		"lid": [1, 13],
+		"hires": true,
+		"lid": [2, 29],
+		"mouth": 4,
 		"sprite": [
 			".oooooooooooooo.",
 			"o55544444333221o",
@@ -186,7 +198,9 @@ static var DEFS := {
 		"noise": [0.6, 0.06],
 		"ramp": ["2e2a26", "4e443a", "6d5f4e", "938067", "bfab88"],
 		"accent": ["5e331e", "8a4c29"],
-		"lid": [1, 20],
+		"hires": true,
+		"lid": [2, 43],
+		"mouth": 3,
 		"sprite": [
 			".oooooooooooooooooooo.",
 			"o54323454323454323454o",
@@ -209,7 +223,9 @@ static var DEFS := {
 		"noise": [0.1, 0.006],
 		"ramp": ["3a2a18", "5e4426", "8a6a3a", "b89452", "ecd090"],
 		"accent": ["1e1610", "fff1c9"],
-		"lid": [5, 13],
+		"hires": true,
+		"lid": [9, 22],
+		"mouth": 8,
 		"sprite": [
 			"....oooooooo.......",
 			"...o........o......",
@@ -236,7 +252,9 @@ static var DEFS := {
 		"noise": [0.05, 0.004],
 		"ramp": ["2a2e36", "434a56", "667080", "95a0b0", "d4dce6"],
 		"accent": ["1a1c22", "8a4c29"],
-		"lid": [0, 12],
+		"hires": true,
+		"lid": [0, 27],
+		"mouth": 1,
 		"sprite": [
 			"bbbbbbbbbbbbb",
 			"ao..o..o..o.a",
@@ -268,7 +286,9 @@ static var DEFS := {
 		"noise": [0.2, 0.02],
 		"ramp": ["1e241e", "323c30", "4c5a46", "6e7e62", "a0ae8c"],
 		"accent": ["5e331e", "b56c38"],
-		"lid": [1, 19],
+		"hires": true,
+		"lid": [4, 37],
+		"mouth": 3,
 		"sprite": [
 			"..oooooooooooooooo....",
 			".o5555444444433332o...",
@@ -292,7 +312,9 @@ static var DEFS := {
 		"noise": [0.55, 0.09],
 		"ramp": ["13242c", "1d3a46", "2b5462", "3f7484", "6fa2b0"],
 		"accent": ["0b151a", "8fa2bb"],
-		"lid": [6, 19],
+		"hires": true,
+		"lid": [12, 41],
+		"mouth": 8,
 		"sprite": [
 			"ab......................ab",
 			"aao....................oaa",
@@ -322,6 +344,8 @@ static func get_def(id: String) -> Dictionary:
 ## Turns a digit-grid sprite into an Image using the def's ramp/accents.
 static func make_image(id: String) -> Image:
 	var d: Dictionary = DEFS[id]
+	if d.get("hires", false):
+		return DrumArt.paint(id)
 	var ramp: Array = d.ramp
 	var acc: Array = d.accent
 	var key := {

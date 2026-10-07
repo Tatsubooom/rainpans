@@ -343,7 +343,7 @@ static func _travel(main: Node) -> void:
 
 ## Saves every drum sprite side by side (plain and lamp-lit) for review.
 static func _sheet() -> void:
-	var cell := Vector2i(30, 26)
+	var cell := Vector2i(62, 50)
 	var c := PixCanvas.new(cell.x * DrumDefs.ORDER.size(), cell.y * 2, Pal.CON1)
 	for i in DrumDefs.ORDER.size():
 		var id: String = DrumDefs.ORDER[i]
@@ -353,7 +353,7 @@ static func _sheet() -> void:
 		var d := Drum.new()
 		d.setup(id)
 		d.position = Vector2(i * cell.x + cell.x / 2.0, cell.y * 2 - 2)
-		d.relight(d.position + Vector2(-26, -20), 90.0, Pal.LAMP2)
+		d.relight(d.position + Vector2(-52, -40), 180.0, Pal.LAMP2)
 		c.stamp(d.tex.get_image(), x, cell.y * 2 - 2 - img.get_height())
 		d.free()
 	c.img.save_png("res://shots/sheet.png")

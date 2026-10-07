@@ -107,10 +107,13 @@ func _draw() -> void:
 			UiKit.panel(self, r, Pal.NIGHT2, Pal.LAMP2)
 		var tex: ImageTexture = _icons[id]
 		var ts := tex.get_size()
-		# Big sprites are shown at half size so every slot fits.
-		var scale := 1.0 if ts.x <= SLOT_W - 4 and ts.y <= 16 else 0.5
-		var ds := (ts * scale).floor()
-		var ip := Vector2(x + floorf((SLOT_W - 2 - ds.x) / 2.0), 2 + floorf(16 - ds.y))
+		# Full-resolution sprites are drawn at half UI size, which is 1:1 on
+		# screen (the UI layer is scaled 2x); shrink further if too big.
+		var scale := 0.5 if DrumDefs.get_def(id).get("hires", false) else 1.0
+		if ts.x * scale > SLOT_W - 2 or ts.y * scale > 17:
+			scale *= 0.5
+		var ds := ts * scale
+		var ip := Vector2(x + roundf((SLOT_W - 2 - ds.x) * 2.0) / 4.0, 2 + roundf((16 - ds.y) * 2.0) / 2.0)
 		if not visible:
 			draw_texture_rect(tex, Rect2(ip, ds), false, Color(0.0, 0.0, 0.0, 0.85))
 			UiKit.text(self, Vector2(x + 10, 19), "?", Pal.FOG0)

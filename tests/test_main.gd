@@ -24,6 +24,7 @@ func _ready() -> void:
 	_test_capacity()
 	_test_journal()
 	_test_disk_save()
+	_test_distant()
 	print("%d checks, %d failures" % [checks, failures])
 	get_tree().quit(1 if failures > 0 else 0)
 
@@ -165,3 +166,12 @@ func _test_disk_save() -> void:
 		dir.remove(name)
 	Game._no_save = true
 	Game.reset()
+
+
+func _test_distant() -> void:
+	for kind in Synth.DISTANT:
+		var wav: AudioStreamWAV = Synth._make_distant(kind)
+		var peak := 0
+		for i in range(0, wav.data.size(), 2):
+			peak = maxi(peak, absi(wav.data.decode_s16(i)))
+		check(wav.data.size() > 20000 and peak > 10000, "distant sound audible: " + kind)

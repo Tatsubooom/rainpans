@@ -29,7 +29,7 @@ static func build() -> Dictionary:
 		"drips": [Vector2(203, 96), Vector2(231, 96), Vector2(214, 96), Vector2(247, 96), Vector2(197, 96), Vector2(262, 96), Vector2(224, 96)],
 		"lamp": Vector2(LAMP),
 		"lamp_color": Pal.LAMP2,
-		"puddles": [Rect2(36, 155, 48, 9), Rect2(112, 166, 56, 8), Rect2(98, 143, 30, 5), Rect2(150, 150, 22, 4)],
+		"puddles": [Rect2(36, 155, 48, 9), Rect2(112, 166, 56, 8), Rect2(98, 143, 30, 5), Rect2(150, 150, 22, 4), Rect2(204, 150, 36, 6)],
 		"smoke": [Vector2(146, 70)],
 		"floor_y": FLOOR_TOP,
 		"blinks": [[Vector2(159, 37), Color("d0482e"), 2.6, 0.22], [Vector2(54, 7), Color("d0482e"), 3.4, 0.18]],
@@ -287,7 +287,7 @@ static func _floor(rng: RandomNumberGenerator) -> Image:
 			c.dpx(x, y, Pal.CON1, 0.35)
 
 	# Puddles: sky reflected, a dark lip.
-	for p in [Rect2(36, 155, 48, 9), Rect2(112, 166, 56, 8), Rect2(98, 143, 30, 5), Rect2(150, 150, 22, 4)]:
+	for p in [Rect2(36, 155, 48, 9), Rect2(112, 166, 56, 8), Rect2(98, 143, 30, 5), Rect2(150, 150, 22, 4), Rect2(204, 150, 36, 6)]:
 		var cx := int(p.position.x + p.size.x / 2)
 		var cy := int(p.position.y + p.size.y / 2)
 		c.ellipse(cx, cy, p.size.x / 2 + 1, p.size.y / 2 + 1, Pal.CON0)

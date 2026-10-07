@@ -87,6 +87,11 @@ func build(id: String) -> void:
 	_mist(EnvFx.mist_texture(440, 36, 2, Pal.FOG0, 1.0), Vector2(240, 216), -2.8)
 	_layer(layers.floor)
 
+	# Puddles mirror everything drawn so far (sky, ruins, railing, lamp glow).
+	var mirror := PuddleMirror.new()
+	add_child(mirror)
+	mirror.setup(area)
+
 	ripples = Ripples.new()
 	add_child(ripples)
 	ripples.setup(area)
@@ -492,6 +497,7 @@ const DAY_KEYS := [
 ]
 const DAY_LENGTH := 1440.0 # seconds of play for one full cycle
 
+var _distant_t := 25.0
 var _wind := -0.08
 var _wind_target := -0.08
 var _gust := 0.0
@@ -592,6 +598,14 @@ func _process(delta: float) -> void:
 		var x0: float = m.get_meta("x0")
 		var tw: float = m.texture.get_width()
 		m.position.x = floorf(wrapf(x0 + _wind_x * sp, -tw, AreaLibrary.W + tw * 0.25))
+
+	# Far-off sounds of the ruined city, every half minute or so.
+	_distant_t -= delta
+	if _distant_t <= 0.0:
+		_distant_t = randf_range(22.0, 55.0)
+		var kinds: Array = area.get("distant", ["creak", "clank", "plink", "groan"])
+		var kind: String = kinds[randi() % kinds.size()]
+		Synth.play_distant(kind, Vector2(randf_range(-200.0, 840.0), 120.0), randf_range(-24.0, -17.0))
 
 	# Distant lightning only in heavier rain.
 	if Game.rain_level() > 0.55 or _storm_k > 0.5:

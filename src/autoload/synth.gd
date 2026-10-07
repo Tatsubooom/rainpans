@@ -100,6 +100,76 @@ func _loop_player(stream: AudioStream, bus: String, db: float) -> AudioStreamPla
 	return p
 
 
+# ---------------------------------------------------------- distant sounds
+
+## The quiet is made of sounds, not silence: now and then something far away
+## creaks, clanks or drips into a big space.
+const DISTANT := ["creak", "clank", "plink", "groan"]
+var _distant := {}
+var _distant_player: AudioStreamPlayer2D
+
+
+func play_distant(kind: String, pos: Vector2, db := -20.0) -> void:
+	if not _distant.has(kind):
+		_distant[kind] = _make_distant(kind)
+	if _distant_player == null:
+		_distant_player = AudioStreamPlayer2D.new()
+		_distant_player.bus = "Drums" # through the reverb, so it sits far back
+		_distant_player.max_distance = 4000.0
+		_distant_player.attenuation = 0.0
+		_distant_player.panning_strength = 0.9
+		add_child(_distant_player)
+	_distant_player.stream = _distant[kind]
+	_distant_player.global_position = pos
+	_distant_player.volume_db = db
+	_distant_player.pitch_scale = randf_range(0.85, 1.1)
+	_distant_player.play()
+
+
+func _make_distant(kind: String) -> AudioStreamWAV:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash(kind)
+	var secs: float = {"creak": 1.6, "clank": 2.5, "plink": 2.0, "groan": 3.2}[kind]
+	var n := int(secs * RATE)
+	var buf := PackedFloat32Array()
+	buf.resize(n)
+	match kind:
+		"creak":
+			# Stick-slip friction: a train of tiny clicks whose rate glides.
+			var ph := 0.0
+			var lp := 0.0
+			for i in n:
+				var t := float(i) / RATE
+				var rate := 38.0 + 30.0 * sin(t * 2.1) + 14.0 * t
+				ph += rate / RATE
+				var click := 1.0 if fmod(ph, 1.0) < rate / RATE else 0.0
+				lp += (click * rng.randf_range(0.6, 1.0) - lp) * 0.25
+				var env := sin(PI * clampf(t / secs, 0.0, 1.0))
+				buf[i] = lp * env
+		"clank", "groan":
+			# Struck steel far away: low inharmonic partials, slow decay.
+			var f0 := 92.0 if kind == "clank" else 54.0
+			var ratios := [1.0, 2.31, 3.86, 5.12] if kind == "clank" else [1.0, 1.42, 2.08, 2.97]
+			for r in ratios:
+				var f: float = f0 * r
+				var amp: float = 1.0 / r
+				var dec: float = secs * (0.5 if kind == "clank" else 0.8) / r
+				for i in n:
+					var t := float(i) / RATE
+					var bend := 1.0 - (0.04 * t if kind == "groan" else 0.0)
+					buf[i] += sin(TAU * f * bend * t) * amp * exp(-t / dec)
+		"plink":
+			# A single drop falling into deep standing water.
+			for i in n:
+				var t := float(i) / RATE
+				var f := 1400.0 + 900.0 * exp(-t * 40.0)
+				buf[i] = sin(TAU * f * t) * exp(-t * 18.0) + sin(TAU * 700.0 * t) * 0.3 * exp(-t * 9.0)
+	var peak := 0.0001
+	for v in buf:
+		peak = maxf(peak, absf(v))
+	return _to_wav(buf, 0.7 / peak, false)
+
+
 ## Per-area background: "water" (canal flow), "wind" (open viaduct) or "".
 func set_area_bed(kind: String) -> void:
 	if kind == "":

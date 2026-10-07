@@ -172,6 +172,26 @@ func _on_unlocked(what: String) -> void:
 		stage.apply_upgrades()
 
 
+# ------------------------------------------------------------ long take
+## After a while without input the UI fades away and the scene plays on by
+## itself, like a long take; any movement brings it back.
+const IDLE_FADE_AFTER := 25.0
+var _idle := 0.0
+var _photo := false
+
+
+func _input(event: InputEvent) -> void:
+	if event is InputEventMouseMotion or event is InputEventMouseButton or event is InputEventKey:
+		_idle = 0.0
+
+
+func _physics_process(delta: float) -> void:
+	_idle += delta
+	var target := 0.0 if (_photo or _idle > IDLE_FADE_AFTER) else 1.0
+	root.modulate.a = move_toward(root.modulate.a, target, delta * (0.4 if target == 0.0 else 4.0))
+	root.visible = root.modulate.a > 0.01
+
+
 func _unhandled_key_input(event: InputEvent) -> void:
 	if event.pressed and not event.echo:
 		match event.keycode:
@@ -183,7 +203,7 @@ func _unhandled_key_input(event: InputEvent) -> void:
 				toggle_settings()
 			KEY_P:
 				# Photo mode: hide every bit of UI until P is pressed again.
-				root.visible = not root.visible
+				_photo = not _photo
 
 
 # ---------------------------------------------------------------------------

@@ -79,7 +79,8 @@ func _describe(i: int) -> String:
 	var d := DrumDefs.get_def(id)
 	var free := Game.free_count(id)
 	if free > 0:
-		return "%s　%s　（ドラッグで置く　%d/%d）" % [d.name, d.desc, Game.placed_in_area().size(), Game.capacity()]
+		var idle := free * float(d.yield) * Game.rain_rate() * Game.CATCH_SHARE * Game.SHELF_POWER
+		return "%s　%s　（ドラッグで置く　%d/%d）　棚でも少し響く +%s/秒" % [d.name, d.desc, Game.placed_in_area().size(), Game.capacity(), Game.fmt(idle) if idle >= 10.0 else "%.2f" % idle]
 	return "%s　%s　響き %s で手に入れる" % [d.name, d.desc, Game.fmt(Game.drum_cost(id))]
 
 

@@ -93,6 +93,13 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	play_time += delta
+	# Drums left on the shelf still catch a little rain at the window.
+	var idle := shelf_rate() * delta
+	if idle > 0.0:
+		resonance += idle
+		total_earned += idle
+		_rate_acc += idle
+		_dirty = true
 	if _dirty:
 		_dirty = false
 		changed.emit()
@@ -127,6 +134,23 @@ func multiplier() -> float:
 	# Every distinct drum type you have placed in this area adds harmony.
 	m *= 1.0 + 0.1 * maxi(0, distinct_placed() - 1)
 	return m
+
+
+## Share of a placed drum's raw catch that an unused one earns on the shelf.
+const SHELF_POWER := 0.01
+## Rough share of the rain a placed drum's mouth catches (hits per drop/s).
+const CATCH_SHARE := 0.01
+
+
+## Per second from drums owned but not placed in this area: 1% of what each
+## would catch on the floor, with no multipliers.
+func shelf_rate() -> float:
+	var r := 0.0
+	for id in owned:
+		var n := free_count(id)
+		if n > 0:
+			r += n * float(DrumDefs.get_def(id).yield)
+	return r * rain_rate() * CATCH_SHARE * SHELF_POWER
 
 
 func earn(base: float) -> float:

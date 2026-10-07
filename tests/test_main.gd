@@ -28,6 +28,7 @@ func _ready() -> void:
 	_test_distant()
 	_test_visitors()
 	_test_wrap()
+	_test_shelf_income()
 	print("%d checks, %d failures" % [checks, failures])
 	get_tree().quit(1 if failures > 0 else 0)
 
@@ -216,3 +217,18 @@ func _test_wrap() -> void:
 		joined += l
 	check(joined.replace("　", "").replace(" ", "") == long.replace("　", "").replace(" ", ""), "wrap keeps every character")
 	check(UiKit.wrap("短い", 304.0).size() == 1, "short line stays one line")
+
+
+func _test_shelf_income() -> void:
+	Game.reset()
+	check(Game.shelf_rate() > 0.0, "the free can on the shelf earns a little")
+	var one := Game.shelf_rate()
+	Game.placed_in_area().append({"id": "can", "x": 100.0, "y": 300.0})
+	check(Game.shelf_rate() == 0.0, "placed drums do not earn shelf income")
+	Game.owned["bucket"] = 2
+	var expect: float = 2.0 * DrumDefs.get_def("bucket").yield * Game.rain_rate() * Game.CATCH_SHARE * Game.SHELF_POWER
+	check(is_equal_approx(Game.shelf_rate(), expect), "shelf income is 1% raw, no multipliers")
+	Game.levels["lamp"] = 3
+	check(is_equal_approx(Game.shelf_rate(), expect), "upgrades' bonuses do not apply on the shelf")
+	check(one < expect, "more drums on the shelf, more income")
+	Game.reset()

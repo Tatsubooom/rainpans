@@ -32,6 +32,13 @@ static func build() -> Dictionary:
 		"puddles": [Rect2(36, 155, 48, 9), Rect2(112, 166, 56, 8), Rect2(98, 143, 30, 5), Rect2(150, 150, 22, 4), Rect2(204, 150, 36, 6)],
 		"smoke": [Vector2(146, 70)],
 		"floor_y": FLOOR_TOP,
+		# Shapes that stop the lantern's light (Celeste-style light hitting
+		# things): the tin overhang and the stacked boxes.
+		"occluders": [
+			PackedVector2Array([Vector2(ROOF_X0, ROOF_Y - 4), Vector2(W, ROOF_Y - 4), Vector2(W, ROOF_Y + 5), Vector2(ROOF_X0, ROOF_Y + 5)]),
+			PackedVector2Array([Vector2(223, 121), Vector2(237, 121), Vector2(237, 131), Vector2(223, 131)]),
+			PackedVector2Array([Vector2(229, 113), Vector2(238, 113), Vector2(238, 120), Vector2(229, 120)]),
+		],
 		"blinks": [[Vector2(159, 37), Color("d0482e"), 2.6, 0.22], [Vector2(54, 7), Color("d0482e"), 3.4, 0.18]],
 		"trickles": [[Vector2(ROOF_X0 + 1, ROOF_Y + 5), 146.0]],
 		"weeds": [[Vector2(14, 177), 5], [Vector2(302, 173), 4], [Vector2(137, 133), 6], [Vector2(62, 132), 4], [Vector2(190, 134), 3]],

@@ -70,6 +70,11 @@ static func upscale(a: Dictionary, k: int) -> Dictionary:
 
 
 static func _scale_value(v, k: int):
+	if v is PackedVector2Array:
+		var out := PackedVector2Array()
+		for p in v:
+			out.append(p * k)
+		return out
 	if v is Vector2:
 		return v * k
 	if v is Vector2i:
@@ -81,6 +86,6 @@ static func _scale_value(v, k: int):
 		for e in v:
 			# Weeds/blinks/trickles mix positions with sizes and timings:
 			# only the geometric parts scale.
-			arr.append(_scale_value(e, k) if (e is Vector2 or e is Rect2 or e is Array) else e)
+			arr.append(_scale_value(e, k) if (e is Vector2 or e is Rect2 or e is Array or e is PackedVector2Array) else e)
 		return arr
 	return v

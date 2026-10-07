@@ -154,6 +154,17 @@ func build(id: String) -> void:
 	lamp_light.color = area.lamp_color
 	lamp_light.energy = 2.2
 	lamp_light.blend_mode = Light2D.BLEND_MODE_ADD
+	if area.has("occluders"):
+		lamp_light.shadow_enabled = true
+		lamp_light.shadow_color = Color(0, 0, 0, 0.0)
+		lamp_light.shadow_filter = Light2D.SHADOW_FILTER_NONE
+		for poly in area.occluders:
+			var occ := LightOccluder2D.new()
+			var op := OccluderPolygon2D.new()
+			op.polygon = poly
+			op.cull_mode = OccluderPolygon2D.CULL_DISABLED
+			occ.occluder = op
+			add_child(occ)
 	add_child(lamp_light)
 	glow_light = PointLight2D.new()
 	glow_light.texture = EnvFx.light_texture(32, 4)

@@ -184,7 +184,7 @@ static func _front(rng: RandomNumberGenerator) -> Image:
 			var d := Vector2((x - hc.x) / hr.x, (y - hc.y) / hr.y).length()
 			d += rough.get_noise_2d(x, y) * 0.12
 			if d < 1.0:
-				c.img.set_pixel(x, y, Color(0, 0, 0, 0))
+				c.erase_rect(x, y, 1, 1)
 			elif d < 1.08:
 				c.px(x, y, Pal.CON3 if y > hc.y else Pal.CON0)
 			elif d < 1.16 and y > hc.y:

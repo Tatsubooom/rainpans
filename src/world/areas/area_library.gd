@@ -1,9 +1,9 @@
 class_name AreaLibrary
 ## Area id -> art + geometry, always in world pixels (640x360).
 ##
-## Areas painted for the old 320x180 grid declare nothing; they are scaled up
-## 2x here (art with nearest-neighbour, every coordinate doubled) until they
-## are repainted at full resolution and declare "res": 2.
+## Areas are composed on a 320x180 grid. They are painted through PixCanvas
+## at 2x (fine edges, fine dithering, same design), and their geometry is
+## doubled here. An area composed directly on the 640 grid declares "res": 2.
 
 const NAMES := {"roof": "崩れた屋上", "rail": "途切れた高架", "glass": "割れた温室", "canal": "地下水路"}
 const W := 640
@@ -12,6 +12,7 @@ const H := 360
 
 static func build(id: String) -> Dictionary:
 	var a: Dictionary
+	PixCanvas.scale_k = 2
 	match id:
 		"rail":
 			a = RailArt.build()
@@ -21,6 +22,7 @@ static func build(id: String) -> Dictionary:
 			a = CanalArt.build()
 		_:
 			a = RoofArt.build()
+	PixCanvas.scale_k = 1
 	if a.get("res", 1) == 1:
 		a = upscale(a, 2)
 	return a
@@ -38,8 +40,10 @@ static func upscale(a: Dictionary, k: int) -> Dictionary:
 		if key == "layers":
 			var layers := {}
 			for ln in v:
-				var img: Image = (v[ln] as Image).duplicate()
-				img.resize(img.get_width() * k, img.get_height() * k, Image.INTERPOLATE_NEAREST)
+				var img: Image = v[ln]
+				if img.get_width() < W:
+					img = img.duplicate()
+					img.resize(img.get_width() * k, img.get_height() * k, Image.INTERPOLATE_NEAREST)
 				layers[ln] = img
 			out[key] = layers
 		elif key in SKIP_KEYS:

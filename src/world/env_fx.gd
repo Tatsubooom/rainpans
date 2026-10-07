@@ -11,10 +11,7 @@ static func light_texture(radius: int, bands := 5) -> ImageTexture:
 			var d := Vector2(x + 0.5 - radius, y + 0.5 - radius).length() / radius
 			if d >= 1.0:
 				continue
-			# A broad plateau near the source, then a quick fall-off: makes
-			# lit things read as clearly lit against the dark.
-			var v := clampf(1.15 - d * 1.15, 0.0, 1.0)
-			v = v * v * (3.0 - 2.0 * v)
+			var v := pow(1.0 - d, 1.6)
 			# Quantise to bands, dithering across each band edge.
 			var q := v * bands
 			var lo := floorf(q)
